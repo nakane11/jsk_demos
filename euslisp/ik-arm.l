@@ -31,13 +31,14 @@
          (msec 500))
     
     (format t "current-arm: ~A~%" current-arm)
-    (when t ;;(eq current-arm tuckarm)
-      (progn
-        (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
-        (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
-        (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
-        (send *ri* :wait-interpolation)
-        ))
+    
+      (when (or (eq current-arm tuckarm) (not current-arm))
+	(progn
+	  (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
+	  (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
+	  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+	  (send *ri* :wait-interpolation)
+	  ))
 
     (if (eq tuckarm :rarm)
         (progn
@@ -57,12 +58,10 @@
 
   (if (eq arm :rarm)
       (progn
-	(setq ik-target (send *pr2* :larm :end-coords :copy-worldcoords))
-	(send ik-target :translate (float-vector -600 350 (+ -650 h)) :world)
+	(setq ik-target (make-coords :pos (float-vector -650 430.5 (+ 800 h))))
 	(send *pr2* :larm :inverse-kinematics ik-target :rotation-axis nil))
       (progn
-        (setq ik-target (send *pr2* :rarm :end-coords :copy-worldcoords))
-	(send ik-target :translate (float-vector -600 -350 (+ -650 h)) :world)
+	(setq ik-target (make-coords :pos (float-vector -650 -430.5 (+ 800 h))))
 	(send *pr2* :rarm :inverse-kinematics ik-target :rotation-axis nil)))
       
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
