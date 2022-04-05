@@ -28,7 +28,7 @@
 
 (defun one-tuckarm-pose (&optional (tuckarm :rarm))
   (let* ((current-arm (check-tuckarm-pose :thre 40)) ;; nil rarm larm
-         (msec 500))
+         (msec 2000))
     
     (format t "current-arm: ~A~%" current-arm)
     
@@ -36,7 +36,7 @@
 	(progn
 	  (send *pr2* :larm :angle-vector #f( 25 0 0 -121 0 -6 0))
 	  (send *pr2* :rarm :angle-vector #f(-25 0 0 -121 0 -6 0))
-	  (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+	  (send *ri* :angle-vector (send *pr2* :angle-vector) msec)
 	  (send *ri* :wait-interpolation)
 	  ))
 
