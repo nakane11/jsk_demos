@@ -1,5 +1,8 @@
 ;; source ros/pr2_ws/devel/setup.bash
+(ros::roseus-add-msgs "jsk_recognition_msgs")
 (load "package://pr2eus/pr2-interface.l")
+
+(ros::roseus "handpose")
 
 (pr2-init)
 (objects (list *pr2*))
@@ -25,7 +28,8 @@
     (send *ri* :move-to goal-pose :frame-id frame-id)
     ))
 
-(defun give-hand-pose (&key (arm :rarm) &key (h 0.0))
+(defun give-hand-pose (&key (arm :rarm) (h nil))
+  (setq (or h (hand-pose-subscriber))) 
   (pr2-tuckarm-pose arm :inside :single)      
   (if (eq arm :rarm)
       (progn
@@ -37,5 +41,15 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   (send *irtviewer* :draw-objects)))
-  
 
+(defun hand-pose-subscriber ()
+  (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
+  (when (> (length (send hand-pose-array :poses)) 0)
+    (setq hand-pose (car (send hand-pose-array :poses)))
+    (setq finger-names (send hand-pose :finger_names))
+    (when (string= (car finger-names) "wrist")
+      (format t "~d ~d ~d" (send (car (send hand-pose :poses)) :position :x)
+              (send (car (send hand-pose :poses)) :position :y)
+              (send (car (send hand-pose :poses)) :position :z))
+      (return-from hand-pose-subscriber (send (car (send hand-pose :poses)) :position :z))))
+  (hand-pose-subscriber))
