@@ -7,6 +7,8 @@
 (pr2-init)
 (objects (list *pr2*))
 
+(setq *tfl* (instance ros::transform-listener :init))
+
 (defparameter *spots* nil)
 (defun get-spot-coords (name)
   (unless *spots*
@@ -28,8 +30,10 @@
     (send *ri* :move-to goal-pose :frame-id frame-id)
     ))
 
-(defun give-hand-pose (&key (arm :rarm) (h nil))
-  (setq (or h (hand-pose-subscriber))) 
+(defun give-hand-pose (&optional (arm :rarm))
+  (setq hand-coords (hand-pose-subscriber))
+  ;; (send *pr2* :translate (float-vector (- 500 (elt (send hand-coords :worldpos) 0)) (- 0 (elt (send hand-coords :worldpos) 1)) 0))
+  ;; (if (> (elt (send hand-coords :worldpos) 1) 0) ;rarm
   (pr2-tuckarm-pose arm :inside :single)      
   (if (eq arm :rarm)
       (progn
@@ -48,8 +52,21 @@
     (setq hand-pose (car (send hand-pose-array :poses)))
     (setq finger-names (send hand-pose :finger_names))
     (when (string= (car finger-names) "wrist")
-      (format t "~d ~d ~d" (send (car (send hand-pose :poses)) :position :x)
-              (send (car (send hand-pose :poses)) :position :y)
-              (send (car (send hand-pose :poses)) :position :z))
-      (return-from hand-pose-subscriber (send (car (send hand-pose :poses)) :position :z))))
+      ;; (format t "~d ~d ~d~%" (send (car (send hand-pose :poses)) :position :x)
+      ;;         (send (car (send hand-pose :poses)) :position :y)
+      ;;         (send (car (send hand-pose :poses)) :position :z))
+      ;; (return-from hand-pose-subscriber (send (car (send hand-pose :poses)) :position :z))
+      (setq stamp (send hand-pose-array :header :stamp))
+      (setq base-to-camera-coords (send *tfl* :lookup-transform "/base_link" (send hand-pose-array :header :frame_id) stamp))
+      (when base-to-camera-coords
+        ;; (format t "~A~%" base-to-camera-coords)
+        (setq camera-to-hand-coords (ros::tf-pose->coords (car (send hand-pose :poses))))
+        (setq base-to-hand (send base-to-camera-coords :transform camera-to-hand-coords))
+        (return-from hand-pose-subscriber base-to-hand)
+      )))
   (hand-pose-subscriber))
+
+
+;; (send *pr2* :reset-pose)
+;; (send *pr2* :translate #f(500 0 0))
+;; (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
