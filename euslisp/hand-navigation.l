@@ -32,16 +32,20 @@
 
 (defun give-hand-pose (&optional (arm :rarm))
   (setq hand-coords (hand-pose-subscriber))
-  ;; (send *pr2* :translate (float-vector (- 500 (elt (send hand-coords :worldpos) 0)) (- 0 (elt (send hand-coords :worldpos) 1)) 0))
-  ;; (if (> (elt (send hand-coords :worldpos) 1) 0) ;rarm
-  (pr2-tuckarm-pose arm :inside :single)      
-  (if (eq arm :rarm)
+  (send *pr2* :translate (float-vector (- 500 (elt (send hand-coords :worldpos) 0)) 0 0))
+  (if (> (elt (send hand-coords :worldpos) 1) 0)
       (progn
-        (setq ik-target (make-coords :pos (float-vector -620 -400 800)))
-        (send *pr2* :rarm :inverse-kinematics ik-target :rotation-axis nil))
-	  (progn
-        (setq ik-target (make-coords :pos (float-vector -620 400 800)))
-        (send *pr2* :larm :inverse-kinematics ik-target :rotation-axis nil))
+        (pr2-tuckarm-pose :rarm :inside :single))
+      (progn
+        (pr2-tuckarm-pose :larm :inside :single)))
+ 
+  ;; (if (eq arm :rarm)
+  ;;     (progn
+  ;;       (setq ik-target (make-coords :pos (float-vector -620 -400 800)))
+  ;;       (send *pr2* :rarm :inverse-kinematics ik-target :rotation-axis nil))
+  ;;     (progn
+  ;;       (setq ik-target (make-coords :pos (float-vector -620 400 800)))
+  ;;       (send *pr2* :larm :inverse-kinematics ik-target :rotation-axis nil))
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   (send *irtviewer* :draw-objects)))
@@ -70,3 +74,26 @@
 ;; (send *pr2* :reset-pose)
 ;; (send *pr2* :translate #f(500 0 0))
 ;; (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
+
+(defun visualize-ik (model arm  &key (x-range `(-500 500)) (y-range `(-500 500)) (z-range `(-500 500)) (interval 100))
+  (setq point-list (list *pr2*))
+  (dotimes (i (+ 1 (floor (/ (- (cadr x-range) (car x-range)) interval))))
+    (setq x (+ (car x-range) (* interval i)))
+    (dotimes (j (+ 1 (floor (/ (- (cadr y-range) (car y-range)) interval))))
+      (setq y (+ (car y-range) (* interval j)))
+      (dotimes (k (+ 1 (floor (/ (- (cadr z-range) (car z-range)) interval))))
+        (setq z (+ (car z-range) (* interval k)))
+        (setq ik-target (make-coords :pos (float-vector x y z)))
+          (if (send model arm :inverse-kinematics ik-target :rotation-axis nil)
+             (push (make-point x y z) point-list)))))
+  (send *irtviewer* :draw-objects))
+
+  
+(defun make-point (x y z)
+  (setq point (make-gdome (make-gdome (make-gdome (make-icosahedron 10.0)))))
+  (send point :set-color :red)
+  (send point :locate (float-vector x y z))
+  point)
+
+
+  
