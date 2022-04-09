@@ -75,7 +75,7 @@
 ;; (send *pr2* :translate #f(500 0 0))
 ;; (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
 
-(defun visualize-ik (model arm  &key (x-range `(-500 500)) (y-range `(-500 500)) (z-range `(-500 500)) (interval 100))
+(defun visualize-ik (model arm  &key (x-range `(-1000 1000)) (y-range `(-600 1400)) (z-range `(0 1600)) (interval 400))
   (setq point-list (list *pr2*))
   (dotimes (i (+ 1 (floor (/ (- (cadr x-range) (car x-range)) interval))))
     (setq x (+ (car x-range) (* interval i)))
@@ -85,13 +85,15 @@
         (setq z (+ (car z-range) (* interval k)))
         (setq ik-target (make-coords :pos (float-vector x y z)))
           (if (send model arm :inverse-kinematics ik-target :rotation-axis nil)
-             (push (make-point x y z) point-list)))))
+              (push (make-point x y z :green) point-list)
+              (push (make-point x y z :red) point-list)))))
+  (objects point-list)
   (send *irtviewer* :draw-objects))
 
   
-(defun make-point (x y z)
+(defun make-point (x y z color)
   (setq point (make-gdome (make-gdome (make-gdome (make-icosahedron 10.0)))))
-  (send point :set-color :red)
+  (send point :set-color color)
   (send point :locate (float-vector x y z))
   point)
 
