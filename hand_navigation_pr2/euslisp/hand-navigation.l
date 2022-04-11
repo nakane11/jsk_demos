@@ -32,23 +32,24 @@
 
 (defun give-hand-pose (&optional (arm :rarm))
   (setq hand-coords (hand-pose-subscriber))
-  (send *pr2* :translate (float-vector (- 500 (elt (send hand-coords :worldpos) 0)) 0 0))
-  (if (> (elt (send hand-coords :worldpos) 1) 0)
+  (if (> (elt (send hand-coords :pos) 1) 0)
       (progn
-        (pr2-tuckarm-pose :rarm :inside :single))
+        (pr2-tuckarm-pose :larm :inside :single)
+        (send *pr2* :translate (float-vector (- (elt (send hand-coords :pos) 0) 400) (+ (elt (send hand-coords :pos) 1) 600) 0)))
       (progn
-        (pr2-tuckarm-pose :larm :inside :single)))
- 
-  ;; (if (eq arm :rarm)
-  ;;     (progn
-  ;;       (setq ik-target (make-coords :pos (float-vector -620 -400 800)))
-  ;;       (send *pr2* :rarm :inverse-kinematics ik-target :rotation-axis nil))
-  ;;     (progn
-  ;;       (setq ik-target (make-coords :pos (float-vector -620 400 800)))
-  ;;       (send *pr2* :larm :inverse-kinematics ik-target :rotation-axis nil))
+        (pr2-tuckarm-pose :rarm :inside :single)
+        (send *pr2* :translate (float-vector (- (elt (send hand-coords :pos) 0) 400) (- (elt (send hand-coords :pos) 1) 600) 0))))
+  (send *pr2* :rotate pi :z)
+  (send *ri* :move-to (send *pr2* :copy-worldcoords))
+  (send *ri* :wait-interpolation)
+  (if (> (elt (send hand-coords :pos) 1) 0)
+      (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
+      (send *pr2* :rarm :inverse-kinematics hand-coords :rotation-axis nil))    
+  (send hand-coords :draw-on :size 300 :flush t)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
-  (send *irtviewer* :draw-objects)))
+  (send *irtviewer* :draw-objects))
+  
 
 (defun hand-pose-subscriber ()
   (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
