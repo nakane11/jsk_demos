@@ -1,6 +1,7 @@
 ;; source ros/pr2_ws/devel/setup.bash
 (ros::roseus-add-msgs "jsk_recognition_msgs")
 (load "package://pr2eus/pr2-interface.l")
+(load "package://jsk_demo_common/euslisp/pr2-action.l")
 
 (ros::roseus "handpose")
 
@@ -30,9 +31,18 @@
     (send *ri* :move-to goal-pose :frame-id frame-id)
     ))
 
-(defun give-hand-pose (&optional (arm :rarm))
+(defun give-hand-pose ()
+  (load "models/arrow-object.l")
+  (setq origin (arrow))
+  (setq hand-arrow (arrow))
   (setq hand-coords (hand-pose-subscriber))
   (if (> (elt (send hand-coords :pos) 1) 0)
+      (setq arm :larm)
+      (setq arm :rarm))
+
+  (send hand-arrow :newcoords hand-coords)
+  (objects (list *pr2* origin hand-arrow))
+  (if (eq arm :larm)
       (progn
         (pr2-tuckarm-pose :larm :inside :single)
         (send *pr2* :translate (float-vector (- (elt (send hand-coords :pos) 0) 400) (+ (elt (send hand-coords :pos) 1) 600) 0)))
@@ -42,13 +52,17 @@
   (send *pr2* :rotate pi :z)
   (send *ri* :move-to (send *pr2* :copy-worldcoords))
   (send *ri* :wait-interpolation)
-  (if (> (elt (send hand-coords :pos) 1) 0)
+  (if (eq arm :larm)
       (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
       (send *pr2* :rarm :inverse-kinematics hand-coords :rotation-axis nil))    
   (send hand-coords :draw-on :size 300 :flush t)
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
-  (send *irtviewer* :draw-objects))
+  (send *irtviewer* :draw-objects)
+  (while t
+    (if (wait-for-hand-impact arm)
+        (return)))
+  (send *ri* :speak "Hello"))
   
 
 (defun hand-pose-subscriber ()
@@ -72,11 +86,7 @@
   (hand-pose-subscriber))
 
 
-;; (send *pr2* :reset-pose)
-;; (send *pr2* :translate #f(500 0 0))
-;; (send *pr2* :larm :inverse-kinematics hand-coords :rotation-axis nil)
-
-(defun visualize-ik (model arm  &key (x-range `(-1000 1000)) (y-range `(-600 1400)) (z-range `(0 1600)) (interval 400))
+(defun visualize-ik (model &key (arm :larm) (x-range `(-1000 1000)) (y-range `(-600 1400)) (z-range `(0 1600)) (interval 400))
   (setq point-list (list *pr2*))
   (dotimes (i (+ 1 (floor (/ (- (cadr x-range) (car x-range)) interval))))
     (setq x (+ (car x-range) (* interval i)))
