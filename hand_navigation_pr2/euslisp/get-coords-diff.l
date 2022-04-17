@@ -4,18 +4,6 @@
 (pr2-init)
 (objects (list *pr2*))
 
-;#<coordinates #X55f3d564ecf0  3710.478 5961.703 0.0 / -3.084 0.0 0.0>
-(defun demo()
-  (send *ri* :move-to (make-coords :pos #f(3710.478 5961.703 0.0) :rpy #f(-3.084 0.0 0.0)))
-  (send *ri* :go-pos-unsafe 0 0 -7.903) ;#<coordinates #X55f3d3567b10  1574.62 6133.688 0.0 / 2.949 0.0 0.0>
-  (send *ri* :go-pos-unsafe 2.14277 0 0)
-  (send *ri* :go-pos-unsafe 0 0 7.86723);#<coordinates #X55f3d35657b8  -760.741 6568.424 0.0 / -1.772 0.0 0.0>
-  (send *ri* :go-pos-unsafe 3.86617 0 0)
-  (send *ri* :go-pos-unsafe ) ;#<coordinates #X55f3d3561d08  -1341.348 3248.902 0.0 / -1.616 0.0 0.0>
-  (send *ri* :go-pos-unsafe ) ;#<coordinates #X55f3d3572500  -1303.42 -324.604 0.0 / -1.58 0.0 0.0>
-  (send *ri* :go-pos-unsafe ) ;#<coordinates #X55f3d356e720  -1352.215 -4756.532 0.0 / -1.543 0.0 0.0>
-  (send *ri* :go-pos-unsafe )) ;#<coordinates #X55f3d356abc8  -1154.441 -7620.252 0.0 / -1.709 0.0 0.0>
-
 (defun save-spot ()
   (let ((spot (one-shot-subscribe "/amcl_pose" geometry_msgs::posewithcovariancestamped)))
     (if spot
@@ -49,7 +37,8 @@
   (setq s3 (make-coords :pos #f(-1341.348 3248.902 0.0) :rpy #f(-1.616 0.0 0.0)))
   (setq s4(make-coords :pos #f(-1303.42 -324.604 0.0) :rpy #f(-1.58 0.0 0.0)))
   (setq s5 (make-coords :pos #f(-1352.215 -4756.532 0.0) :rpy #f(-1.543 0.0 0.0)))
-  (setq s6 (make-coords :pos #f(-1154.441 -7620.252 0.0) :rpy #f(-1.709 0.0 0.0))))
+  (setq s6 (make-coords :pos #f(-1154.441 -7620.252 0.0) :rpy #f(-1.709 0.0 0.0)))
+  (list s0 s1 s2 s3 s4 s5 s6))
   
 ; pregrasp coords
 (defun orient-x-axis (x-axis)
@@ -58,3 +47,12 @@
     (set-matrix-column mat 1 (v* #f(0 0 1) x-axis))
     (set-matrix-column mat 2 #f(0 0 1))
     mat))
+
+(defun demo-to-elevator()
+  (setq spot-list (define-coords))
+  (send *ri* :move-to (pop spot-list))
+  (dolist (i spot-list)
+    (setq tmp (convert-go-to-robot i))
+    (send *ri* :go-pos-unsafe 0 0 (cadr tmp))
+    (send *ri* :go-pos-unsafe (car tmp) 0 0)))
+  
