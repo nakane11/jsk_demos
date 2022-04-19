@@ -24,10 +24,10 @@
               (push base-to-point ret)))))))
   ret)
             
-
 (defun pointcloud2-subscriber(pc2 people-coords-list)
   (let ((width (send pc2 :width)) (points (send pc2 :data)))
     (setq pub (instance sensor_msgs::PointCloud2 :init))
+    ;;
     (when (> width 0)
       (dotimes (i width)
         (setq point-data (subseq points (* 16 i) (* 16 (+ 1 i))))
@@ -35,6 +35,7 @@
         (dolist (people-coords people-coords-list)
           (if (or (< 500 (abs (- (elt point-xyz 0) (elt (send people-coords :position) 0))))
                   (< 500 (abs (- (elt point-xyz 1) (elt (send people-coords :position) 1)))))
+              (return) ;escape dolist
               ;;
               ))))))
 
@@ -55,9 +56,9 @@
 
 (defmethod human-filter
     (:callback (pc2 poses)
-     (setq people-coords (people-array-subscriber poses)) ;(x, y)
-     (setq pc2-filtered (pointcloud2-subscriber pc2 people-coords))
-     (ros::publish "human_filtered" pc2-filtered)))
+     (setq people-coords (people-array-subscriber poses))
+     (setq pub (pointcloud2-subscriber pc2 people-coords))
+     (ros::publish "human_filtered" pub)))
 
 (setq *mf* (instance human-filter :init
                      (list (list "/base_scan_filtered" sensor_msgs::PointCloud2)
