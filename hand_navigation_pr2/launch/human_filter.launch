@@ -62,6 +62,17 @@
     </rosparam>
   </node>
 
+  <node name="pointcloud_mux"
+        pkg="topic_tools" type="mux"
+        args="$(arg input_cloud)_mux $(arg input_cloud) /extract_indices/output" >
+    <remap from="mux" to="pointcloud_mux"/>
+  </node>
+
+  <!-- <node name="set_params" -->
+  <!--       pkg="dynamic_reconfigure" type="dynparam" -->
+  <!--       args="set "> -->
+  <!-- </node> -->
+
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"
           pkg="rviz" type="rviz"
