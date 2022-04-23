@@ -115,11 +115,6 @@
     </node>
   </group>
 
-  <!-- <node name="set_params" -->
-  <!--       pkg="dynamic_reconfigure" type="dynparam" -->
-  <!--       args="set "> -->
-  <!-- </node> -->
-
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"
           pkg="rviz" type="rviz"

@@ -1,0 +1,38 @@
+;; source ros/pr2_ws/devel/setup.bash                                           
+(ros::roseus-add-msgs "jsk_recognition_msgs")
+(load "package://pr2eus/pr2-interface.l")
+
+(ros::roseus "people-pose")
+
+(pr2-init)
+(objects (list *pr2*))
+
+(setq *tfl* (instance ros::transform-listener :init))
+
+(defun people-pose-subscriber ()
+  (setq people-pose-array (one-shot-subscribe "~input" jsk_recognition_msgs::PeoplePoseArray))
+  (when (> (length (send people-pose-array :poses)) 0)
+    (setq people-pose (car (send people-pose-array :poses)))
+    (setq finger-names (send people-pose :finger_names))
+    (when (string= (car finger-names) "wrist")
+      ;; (format t "~d ~d ~d~%" (send (car (send people-pose :poses)) :position :\
+x)                                                                              
+      ;;         (send (car (send people-pose :poses)) :position :y)              
+      ;;         (send (car (send people-pose :poses)) :position :z))             
+      ;; (return-from people-pose-subscriber (send (car (send people-pose :poses)) \
+:position :z))                                                                  
+      (setq stamp (send people-pose-array :header :stamp))
+      (setq base-to-camera-coords (send *tfl* :lookup-transform "/base_link" (s\
+end people-pose-array :header :frame_id) stamp))
+      (when base-to-camera-coords
+        ;; (format t "~A~%" base-to-camera-coords)                              
+        (setq camera-to-people-coords (ros::tf-pose->coords (car (send people-pose \
+:poses))))
+        (setq base-to-people (send base-to-camera-coords :transform camera-to-han\
+d-coords))
+        (return-from people-pose-subscriber base-to-people)
+      )))
+  (people-pose-subscriber))
+
+
+
