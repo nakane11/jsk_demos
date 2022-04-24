@@ -9,12 +9,12 @@
 
 (ros::roseus "hand_navigation")
 (ros::wait-for-service "get_people_size")
-(setq req (instance hand_navigation_pr2::PeopleSizeRequest :init))
-;(setq res (ros::service-call "get_people_size" req))
+(setq ps_req (instance hand_navigation_pr2::PeopleSizeRequest :init))
+(setq ps_res (ros::service-call "get_people_size" ps_req))
 
 (setq side (give-hand-pose)) ;; :larm or :rarm
 
-(setq w (* width 1.5))
+(setq w (* (send ps_res :width) 1.5))
 (if (eq side :larm)
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 w) (+ 0.5 w)))
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 w) (- -0.5 w))))    
