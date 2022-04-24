@@ -1,7 +1,0 @@
-;; source ros/pr2_ws/devel/setup.bash
-
-(ros::load-ros-manifest "roseus")
-;;(ros::roseus-add-msgs "")
-
-(ros::roseus "get_people_size_client")
-(ros::wait-for-service "get_people_size")
