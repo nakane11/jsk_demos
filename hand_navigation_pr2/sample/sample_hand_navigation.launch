@@ -1,0 +1,59 @@
+<launch>
+
+  <arg name="gui" value="true" />
+  <arg name="input_cloud" value="/camera/depth_registered/points" />
+  <!-- <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> -->
+  <arg name="input_pose_array" value="/people_pose_2d_to_3d/output/pose" /> 
+
+  <include file="$(find jsk_perception)/sample/sample_people_pose_estimation_2d.launch" >
+    <arg name="coral" value="true" />
+    <arg name="gui" value="false" />
+  </include>
+
+  
+  <node name="get_people_size_server"
+        pkg="hand_navigation_pr2" type="get_people_size_server.py">
+    <remap from="~input" to="$(arg input_pose_array)"  />
+    <rosparam>
+      base_frame_id: camera_link
+    </rosparam>
+  </node>
+
+  <!-- <node name="people_pose_array_to_boxes" -->
+  <!--       pkg="hand_navigation_pr2" type="people_pose_array_to_boxes.py" -->
+  <!--       output="screen" > -->
+  <!--   <remap from="~input" to="$(arg input_pose_array)" /> -->
+  <!--   <rosparam> -->
+  <!--     base_frame_id: camera_link -->
+  <!--     width: 0.8 -->
+  <!--   </rosparam> -->
+  <!-- </node> -->
+
+  <!-- <node name="attention_clipper" -->
+  <!--       pkg="nodelet" type="nodelet" -->
+  <!--       args="standalone jsk_pcl/AttentionClipper"> -->
+  <!--   <remap from="~input/points" to="$(arg input_cloud)" /> -->
+  <!--   <remap from="~input/box_array" to="people_pose_array_to_boxes/output" /> -->
+  <!--   <rosparam> -->
+  <!--     use_multiple_attention: true -->
+  <!--     negative: true -->
+  <!--   </rosparam> -->
+  <!-- </node> -->
+
+  <!-- <node name="extract_indices" -->
+  <!--       pkg="nodelet" type="nodelet" -->
+  <!--       args="standalone jsk_pcl/ExtractIndices"> -->
+  <!--   <remap from="~input" to="$(arg input_cloud)" /> -->
+  <!--   <remap from="~indices" to="attention_clipper/output/point_indices" /> -->
+  <!--   <rosparam> -->
+  <!--     keep_organized: true                                                                                                                -->
+  <!--   </rosparam> -->
+  <!-- </node> -->
+
+  <!-- <group if="$(arg gui)" > -->
+  <!--   <node name="$(anon rviz)" -->
+  <!--         pkg="rviz" type="rviz" -->
+  <!--         args="-d $(find hand_navigation_pr2)/sample/config/human_filter.rviz" > -->
+  <!--   </node> -->
+  <!-- </group> -->
+</launch>
