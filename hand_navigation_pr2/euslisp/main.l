@@ -1,23 +1,28 @@
 ;; source ros/pr2_ws/devel/setup.bash
 (ros::roseus-add-srvs "hand_navigation_pr2")
+(ros::roseus-add-srvs "topic_tools")
 (load "package://pr2eus/pr2-interface.l")
 (load "package://hand_navigation_pr2/give-hand-pose.l")
 
 (pr2-init)
 (objects (list *pr2*))
 
-(ros::roseus "hand_nav")
+(ros::roseus "hand_navigation")
 (ros::wait-for-service "get_people_size")
-(setq req (instance hand_navigation_pr2::PeopleSize :init))
+(setq req (instance hand_navigation_pr2::PeopleSizeRequest :init))
 ;(setq res (ros::service-call "get_people_size" req))
 
 (setq side (give-hand-pose)) ;; :larm or :rarm
 
+(setq w (* width 1.5))
 (if (eq side :larm)
-    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[-0.4, 0.4], [-0.4, 0.6], [0, 0.6], [0, 0.4], [0.34,0.35],[0.4,0],[0.34,-0.35]]")
-    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0,-0.4],[0,-0.6],[-0.4,-0.6],[-0.4,-0.4]]"))
+    (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 w) (+ 0.5 w)))
+    (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 w) (- -0.5 w))))    
+(ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string footprint)
 
-
+(setq req (instance topic_tools::MuxSelectRequest :init))
+(send req :topic "/base_scan_filtered_non_human")
+(setq res (ros::service-call "/filter_base_laser_scan/pointcloud_mux/select" req))
 
 (defun reset-footprint()
   (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]"))

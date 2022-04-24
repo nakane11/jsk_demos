@@ -2,7 +2,7 @@
 (ros::roseus-add-msgs "jsk_recognition_msgs")
 (load "package://pr2eus/pr2-interface.l")
 
-(ros::roseus "handpose")
+(ros::roseus "hand_pose")
 
 ;; (pr2-init)
 ;; (objects (list *pr2*))
