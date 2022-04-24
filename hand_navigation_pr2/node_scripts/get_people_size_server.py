@@ -14,14 +14,14 @@ import tf2_ros
 class GetPeopleSize():
 
     def __init__(self):
-        super(PeoplePoseArrayToBoxes, self).__init__()
+        #super(GetPeopleSize, self).__init__()
         self.width = rospy.get_param("~width", 0.5)
         self._duration_timeout = rospy.get_param("~timeout", 3.0)
 
 	self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
 
-        self.base_frame_id = rospy.get_param("~base_frame_id", base_footprint)
+        self.base_frame_id = rospy.get_param("~base_frame_id")
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
         
     def subscribe(self):
@@ -60,7 +60,6 @@ class GetPeopleSize():
             center = np.sum(poses, axis=0) / len(poses)
             if np.any(np.isnan(center)):
                 continue
-            box_msg = BoundingBox(header=header)
             x, y, z = center[0], center[1], center[2]
             x, y, z = pykdl_transform_base_to_camera * PyKDL.Vector(
                 x, y, z)
@@ -70,7 +69,7 @@ class GetPeopleSize():
             rospy.loginfo("no people")
             return
         center_list = np.array(center_list)
-        index = center_list.index(np.amin(np.abs(center_list)))
+        index = np.argmin(np.abs(center_list))
 
         person = msg.poses[index]
         poses = []
@@ -83,15 +82,15 @@ class GetPeopleSize():
             else:
                 continue
 
-    def get_people_size(req):
+    def get_people_size(self, req):
         response = PeopleSizeResponse()
         self.width = np.nan
-        while np.isnan(self.width):
+        while np.isnan(self.width) or self.width > 0.6:
             self.subscribe()
         response.width = self.width
         return response
 
-    def start_server():
+    def start_server(self):
         service = rospy.Service('get_people_size', PeopleSize, self.get_people_size) 
         rospy.spin()
 
