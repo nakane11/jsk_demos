@@ -14,7 +14,6 @@ import tf2_ros
 class GetPeopleSize():
 
     def __init__(self):
-        #super(GetPeopleSize, self).__init__()
         self.width = rospy.get_param("~width", 0.5)
         self._duration_timeout = rospy.get_param("~timeout", 3.0)
 

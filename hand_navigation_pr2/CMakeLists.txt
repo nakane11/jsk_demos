@@ -58,6 +58,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   PeopleSize.srv
+  SetBBoxPublisher.srv
   )
 
 ## Generate actions in the 'action' folder

@@ -2,12 +2,6 @@
 (ros::roseus-add-msgs "jsk_recognition_msgs")
 (load "package://pr2eus/pr2-interface.l")
 
-(ros::roseus "hand_pose")
-
-;; (pr2-init)
-;; (objects (list *pr2*))
-
-(setq *tfl* (instance ros::transform-listener :init))
 
 (defun give-hand-pose ()
   (send *pr2* :head :angle-vector #f(4.8307 14.694))
@@ -33,6 +27,7 @@
   arm)
 
 (defun hand-pose-subscriber ()
+  (setq *tfl* (instance ros::transform-listener :init))
   (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
   (when (> (length (send hand-pose-array :poses)) 0)
     (setq hand-pose (car (send hand-pose-array :poses)))
