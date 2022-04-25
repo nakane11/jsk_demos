@@ -10,12 +10,23 @@
     <arg name="gui" value="false" />
   </include>
 
+  <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
+    <arg name="with_depth" value="true" />
+    <arg name="gui" value="false" />
+  </include>
   
   <node name="get_people_size_server"
         pkg="hand_navigation_pr2" type="get_people_size_server.py">
     <remap from="~input" to="$(arg input_pose_array)"  />
     <rosparam>
       base_frame_id: camera_link
+    </rosparam>
+  </node>
+
+  <node name="boundingbox_publisher"
+        pkg="hand_navigation_pr2" type="boundingbox_publisher.py">
+    <rosparam>
+      base_frame_id: base_footprint
     </rosparam>
   </node>
 

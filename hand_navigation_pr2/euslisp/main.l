@@ -11,10 +11,18 @@
 (ros::wait-for-service "get_people_size")
 (setq ps_req (instance hand_navigation_pr2::PeopleSizeRequest :init))
 (setq ps_res (ros::service-call "get_people_size" ps_req))
+(setq w (* (send ps_res :width) 1.5))
 
 (setq side (give-hand-pose)) ;; :larm or :rarm
 
-(setq w (* (send ps_res :width) 1.5))
+(setq bbox_req (instance hand_navigation_pr2::SetBBoxPublisherRequest :init))
+(send bbox_req :switch t)
+(if (eq side :larm)
+    (send bbox_req :position (float-vector -0.2 (+ 0.5 (/ w 2)) 0.0))
+    (send bbox_req :position (float-vector -0.2 (- -0.5 (/ w 2)) 0.0)))
+(send bbox_req :dimention (float-vector 0.6 w 3.0))
+(setq bbox_res (ros::service-call "boubdingbox_publisher_set_param" bbox_req))
+
 (if (eq side :larm)
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 w) (+ 0.5 w)))
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 w) (- -0.5 w))))    

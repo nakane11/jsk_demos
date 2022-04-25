@@ -21,7 +21,7 @@ class BoundingBoxPublisher(object):
         self.pub = rospy.Publisher('~output', BoundingBox, queue_size=1)
         self.rate = rospy.Rate(1)
         self.is_run = False
-        service = rospy.Service('bbox_publisher', SetBBoxPublisher, self.set_param_server)
+        service = rospy.Service('~set_param', SetBBoxPublisher, self.set_param_server)
         
         while not rospy.is_shutdown():
             self.publish()
@@ -50,6 +50,6 @@ class BoundingBoxPublisher(object):
         return response
         
 if __name__ == '__main__':
-    rospy.init_node('bounding_box_publisher')
+    rospy.init_node('boundingbox_publisher')
     bbox_publisher = BoundingBoxPublisher()
    
