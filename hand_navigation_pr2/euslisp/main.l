@@ -2,7 +2,7 @@
 (ros::roseus-add-srvs "hand_navigation_pr2")
 (ros::roseus-add-srvs "topic_tools")
 (load "package://pr2eus/pr2-interface.l")
-(load "package://hand_navigation_pr2/give-hand-pose.l")
+(load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 
 (pr2-init)
 (objects (list *pr2*))
@@ -21,7 +21,7 @@
     (send bbox_req :position (float-vector -0.2 (+ 0.5 (/ w 2)) 0.0))
     (send bbox_req :position (float-vector -0.2 (- -0.5 (/ w 2)) 0.0)))
 (send bbox_req :dimention (float-vector 0.6 w 3.0))
-(setq bbox_res (ros::service-call "boubdingbox_publisher_set_param" bbox_req))
+(setq bbox_res (ros::service-call "/boundingbox_publisher/set_param" bbox_req))
 
 (if (eq side :larm)
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 w) (+ 0.5 w)))
