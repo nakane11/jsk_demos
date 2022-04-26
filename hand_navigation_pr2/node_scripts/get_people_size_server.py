@@ -4,16 +4,19 @@ from copy import deepcopy
 
 import numpy as np
 from jsk_recognition_msgs.msg import PeoplePoseArray
-from hand_navigation_pr2.srv import PeopleSize, PeopleSizeResponse
 import rospy
 import PyKDL
 import tf2_geometry_msgs
 import tf2_ros
 
+from jsk_topic_tools import ConnectionBasedTransport
+import std_msgs.msg
 
-class GetPeopleSize():
+
+class GetPeopleSize(ConnectionBasedTransport):
 
     def __init__(self):
+        super(GetPeopleSize, self).__init__()
         self.width = rospy.get_param("~width", 0.5)
         self._duration_timeout = rospy.get_param("~timeout", 3.0)
 
@@ -22,7 +25,12 @@ class GetPeopleSize():
 
         self.base_frame_id = rospy.get_param("~base_frame_id", "camera_link")
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
-        
+        self.width_thresh = rospy.get_param("~width", 0.6)
+
+        self.pub = self.advertise(
+            "~output", std_msgs.msg.Float32,
+            queue_size=1)
+
     def subscribe(self):
         self.sub = rospy.Subscriber('~input', PeoplePoseArray, self._convert)
 
@@ -30,6 +38,7 @@ class GetPeopleSize():
         self.sub.unregister()
 
     def _convert(self, msg):
+        rospy.loginfo("convert")
         header = deepcopy(msg.header)
         header.frame_id = self.base_frame_id
         center_list=[]
@@ -80,20 +89,26 @@ class GetPeopleSize():
                 break
             else:
                 continue
+        if not np.isnan(self.width) and self.width < self.width_thresh:
+            self.pub.publish(std_msgs.msg.Float32(self.width))
+        else:
+            self.pub.publish(std_msgs.msg.Float32(100000))
 
     def get_people_size(self, req):
+        rospy.loginfo("get_people_size request")
         response = PeopleSizeResponse()
         self.width = np.nan
-        while np.isnan(self.width) or self.width > 0.6:
-            self.subscribe()
+        rospy.loginfo("subscribe start")
+        r = rospy.Rate(10)
+        self.subscribe()
+        while not rospy.is_shutdown() and (np.isnan(self.width) or self.width > 0.6):
+            rospy.loginfo("waiting...")
+            r.sleep()
+        self.unsubscribe()
         response.width = self.width
         return response
-
-    def start_server(self):
-        service = rospy.Service('get_people_size', PeopleSize, self.get_people_size) 
-        rospy.spin()
-
+        
 if __name__ == '__main__':
     rospy.init_node('get_people_size_server')
     get_people_size = GetPeopleSize()
-    get_people_size.start_server()
+    rospy.spin()
