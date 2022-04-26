@@ -2,7 +2,6 @@
 
   <arg name="gui" value="true" />
   <arg name="input_cloud" value="/camera/depth_registered/points" />
-  <!-- <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> -->
   <arg name="input_pose_array" value="/people_pose_2d_to_3d/output/pose" /> 
 
   <include file="$(find jsk_perception)/sample/sample_people_pose_estimation_2d.launch" >
@@ -11,6 +10,9 @@
   </include>
 
   <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
+    <arg name="INPUT_IMAGE" value="/camera/rgb/image_rect_color" />
+    <arg name="INPUT_DEPTH_IMAGE" value="/camera/depth_registered/hw_registered/image_rect" />
+    <arg name="INPUT_CAMERA_INFO" value="/camera/rgb/camera_info" />    
     <arg name="with_depth" value="true" />
     <arg name="gui" value="false" />
   </include>
