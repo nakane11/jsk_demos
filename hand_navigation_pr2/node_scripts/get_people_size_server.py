@@ -20,7 +20,7 @@ class GetPeopleSize():
 	self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
 
-        self.base_frame_id = rospy.get_param("~base_frame_id")
+        self.base_frame_id = rospy.get_param("~base_frame_id", "camera_link")
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
         
     def subscribe(self):
