@@ -23,10 +23,6 @@ class BoundingBoxPublisher(object):
         self.is_run = False
         service = rospy.Service('~set_param', SetBBoxPublisher, self.set_param_server)
         
-        while not rospy.is_shutdown():
-            self.publish()
-            self.rate.sleep()
-
     def publish(self):
         if self.is_run:
             bbox_msg = BoundingBox()
@@ -48,8 +44,17 @@ class BoundingBoxPublisher(object):
         else:
             rospy.loginfo("bounding_box_publisher: stop")
         return response
+
+    def run(self):
+        while not rospy.is_shutdown():
+            self.publish()
+            try:
+                self.rate.sleep()
+            except rospy.exceptions.ROSTimeMovedBackwardsException:
+                continue
+        
         
 if __name__ == '__main__':
     rospy.init_node('boundingbox_publisher')
     bbox_publisher = BoundingBoxPublisher()
-   
+    bbox_publisher.run()
