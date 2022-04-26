@@ -4,17 +4,20 @@
 (load "package://pr2eus/pr2-interface.l")
 (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 
+(ros::roseus "hand_navigation")
+
 (pr2-init)
 (objects (list *pr2*))
-
-(ros::roseus "hand_navigation")
+;; set w
 (ros::wait-for-service "get_people_size")
 (setq ps_req (instance hand_navigation_pr2::PeopleSizeRequest :init))
 (setq ps_res (ros::service-call "get_people_size" ps_req))
 (setq w (* (send ps_res :width) 1.5))
 
+;; initial pose
 (setq side (give-hand-pose)) ;; :larm or :rarm
 
+;; publish boundinbox
 (setq bbox_req (instance hand_navigation_pr2::SetBBoxPublisherRequest :init))
 (send bbox_req :switch t)
 (if (eq side :larm)
@@ -23,6 +26,7 @@
 (send bbox_req :dimention (float-vector 0.6 w 3.0))
 (setq bbox_res (ros::service-call "/boundingbox_publisher/set_param" bbox_req))
 
+;; resize footprint
 (if (eq side :larm)
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 w) (+ 0.5 w)))
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 w) (- -0.5 w))))    
@@ -31,6 +35,9 @@
 (setq req (instance topic_tools::MuxSelectRequest :init))
 (send req :topic "/base_scan_filtered_non_human")
 (setq res (ros::service-call "/filter_base_laser_scan/pointcloud_mux/select" req))
+
+(send req :topic "/tilt_scan_filtered_non_human")
+(setq res (ros::service-call "/filter_tilt_laser_scan/pointcloud_mux/select" req))
 
 (defun reset-footprint()
   (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]"))
