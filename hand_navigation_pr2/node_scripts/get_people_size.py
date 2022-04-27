@@ -17,7 +17,7 @@ class GetPeopleSize(ConnectionBasedTransport):
 
     def __init__(self):
         super(GetPeopleSize, self).__init__()
-        self.width = rospy.get_param("~width", 0.5)
+        self.width = rospy.get_param("~width", 0.3)
         self._duration_timeout = rospy.get_param("~timeout", 3.0)
 
 	self._tf_buffer = tf2_ros.Buffer()
@@ -25,7 +25,8 @@ class GetPeopleSize(ConnectionBasedTransport):
 
         self.base_frame_id = rospy.get_param("~base_frame_id", "camera_link")
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
-        self.width_thresh = rospy.get_param("~width", 0.6)
+        self.width_thresh_max = 0.5
+        self.width_thresh_min = 0.2
 
         self.pub = self.advertise(
             "~output", std_msgs.msg.Float32,
@@ -38,7 +39,6 @@ class GetPeopleSize(ConnectionBasedTransport):
         self.sub.unregister()
 
     def _convert(self, msg):
-        rospy.loginfo("convert")
         header = deepcopy(msg.header)
         header.frame_id = self.base_frame_id
         center_list=[]
@@ -74,41 +74,28 @@ class GetPeopleSize(ConnectionBasedTransport):
             center_list.append(y)
 
         if len(center_list) <= 0:
-            rospy.loginfo("no people")
             return
         center_list = np.array(center_list)
         index = np.argmin(np.abs(center_list))
 
         person = msg.poses[index]
-        poses = []
+        l_endpose = np.full((1, 3), np.nan)
+        r_endpose = np.full((1, 3), np.nan)
         for i, limb in enumerate(person.limb_names):
-            if limb == "left shoulder" and person.limb_names[i+1] == "right shoulder":
+            if limb == "left shoulder":
                 l_endpose = np.array([person.poses[i].position.x, person.poses[i].position.y, person.poses[i].position.z])
-                r_endpose = np.array([person.poses[i+1].position.x, person.poses[i+1].position.y, person.poses[i+1].position.z])
-                self.width = np.linalg.norm(l_endpose - r_endpose)
-                break
-            else:
-                continue
-        if not np.isnan(self.width) and self.width < self.width_thresh:
+            elif limb == "right shoulder": 
+                r_endpose = np.array([person.poses[i].position.x, person.poses[i].position.y, person.poses[i+1].position.z])
+        if np.any(np.isnan(l_endpose)) or np.any(np.isnan(r_endpose)):
+            return
+        else:
+            self.width = np.linalg.norm(l_endpose - r_endpose)
+        if not np.isnan(self.width) and self.width < self.width_thresh_max and self.width > self.width_thresh_min:
             self.pub.publish(std_msgs.msg.Float32(self.width))
         else:
             self.pub.publish(std_msgs.msg.Float32(100000))
-
-    def get_people_size(self, req):
-        rospy.loginfo("get_people_size request")
-        response = PeopleSizeResponse()
-        self.width = np.nan
-        rospy.loginfo("subscribe start")
-        r = rospy.Rate(10)
-        self.subscribe()
-        while not rospy.is_shutdown() and (np.isnan(self.width) or self.width > 0.6):
-            rospy.loginfo("waiting...")
-            r.sleep()
-        self.unsubscribe()
-        response.width = self.width
-        return response
         
 if __name__ == '__main__':
-    rospy.init_node('get_people_size_server')
+    rospy.init_node('get_people_size')
     get_people_size = GetPeopleSize()
     rospy.spin()
