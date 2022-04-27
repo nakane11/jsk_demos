@@ -27,7 +27,6 @@ class GetPeopleSize(ConnectionBasedTransport):
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
         self.width_thresh_max = 0.5
         self.width_thresh_min = 0.2
-
         self.pub = self.advertise(
             "~output", std_msgs.msg.Float32,
             queue_size=1)
