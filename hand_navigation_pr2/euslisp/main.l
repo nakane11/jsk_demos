@@ -9,11 +9,11 @@
 (pr2-init)
 (objects (list *pr2*))
 ;; set w
-(ros::wait-for-service "get_people_size")
-(setq ps_req (instance hand_navigation_pr2::PeopleSizeRequest :init))
-(setq ps_res (ros::service-call "get_people_size" ps_req))
-(setq w (* (send ps_res :width) 1.5))
-
+(setq shoulder_width 10000.0)
+(while (> shoulder_width 0.6)
+  (setq shoulder_width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data)))
+(setq w (* shoulder_width 1.5))
+(send *ri* :speak (format nil "~A meter" shoulder_width))
 ;; initial pose
 (setq side (give-hand-pose)) ;; :larm or :rarm
 
@@ -32,12 +32,12 @@
     (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 w) (- -0.5 w))))    
 (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string footprint)
 
-(setq req (instance topic_tools::MuxSelectRequest :init))
-(send req :topic "/base_scan_filtered_non_human")
-(setq res (ros::service-call "/filter_base_laser_scan/pointcloud_mux/select" req))
+;; (setq req (instance topic_tools::MuxSelectRequest :init))
+;; (send req :topic "/base_scan_filtered_non_human")
+;; (setq res (ros::service-call "/filter_base_laser_scan/pointcloud_mux/select" req))
 
-(send req :topic "/tilt_scan_filtered_non_human")
-(setq res (ros::service-call "/filter_tilt_laser_scan/pointcloud_mux/select" req))
+;; (send req :topic "/tilt_scan_filtered_non_human")
+;; (setq res (ros::service-call "/filter_tilt_laser_scan/pointcloud_mux/select" req))
 
 (defun reset-footprint()
   (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]"))

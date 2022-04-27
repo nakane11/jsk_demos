@@ -13,7 +13,7 @@ class BoundingBoxPublisher(object):
 
     def __init__(self):
         self.seq = 0
-        self.frame_id = rospy.get_param("~base_frame_id", "base_footprint")
+        self.frame_id = rospy.get_param("~base_frame_id")
         self.position = [0.0, 0.5, 0.0]
         self.orientation = [0.0, 0.0, 0.0, 1.0]
         self.dimention = [1.5, 0.7, 3.0]

@@ -23,7 +23,7 @@ class GetPeopleSize(ConnectionBasedTransport):
 	self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
 
-        self.base_frame_id = rospy.get_param("~base_frame_id", "camera_link")
+        self.base_frame_id = rospy.get_param("~base_frame_id", "base_link")
         rospy.loginfo("target frame_id: {}".format(self.base_frame_id))
         self.width_thresh_max = 0.5
         self.width_thresh_min = 0.2
@@ -54,7 +54,6 @@ class GetPeopleSize(ConnectionBasedTransport):
                 tf2_ros.ExtrapolationException) as e:
             rospy.logwarn('{}'.format(e))
             return
-
         for person in msg.poses:
             poses = []
             for pose in person.poses:
@@ -72,7 +71,6 @@ class GetPeopleSize(ConnectionBasedTransport):
             x, y, z = pykdl_transform_base_to_camera * PyKDL.Vector(
                 x, y, z)
             center_list.append(y)
-
         if len(center_list) <= 0:
             return
         center_list = np.array(center_list)

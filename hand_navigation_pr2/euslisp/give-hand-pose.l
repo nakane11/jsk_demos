@@ -25,7 +25,7 @@
       (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil))
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
-  ;(send *irtviewer* :draw-objects)
+  (send *irtviewer* :draw-objects)
   arm)
 
 (defun hand-pose-subscriber ()
