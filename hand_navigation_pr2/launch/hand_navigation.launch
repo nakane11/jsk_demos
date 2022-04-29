@@ -1,5 +1,5 @@
 <launch>
-  <arg name="gui" value="false" />
+  <arg name="gui" value="true" />
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
   <arg name="input_base_scan" value="/base_scan_filtered" />
@@ -11,12 +11,18 @@
   <arg name="input_depth_image" value="/kinect_head/depth_registered/hw_registered/image_rect" />
   <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> 
 
+  <include file="$(find hand_navigation_pr2)/launch/speech_recognition.launch" >
+    <arg name="language" default="ja-JP" />
+  </include>
+
+  <include file="$(find virtual_force_publisher)/launch/virtual_force_publisher.launch" />
+
   <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
     <arg name="INPUT_IMAGE" value="$(arg input_rgb_image)" />
     <arg name="INPUT_DEPTH_IMAGE" value="$(arg input_depth_image)" />
     <arg name="INPUT_CAMERA_INFO" value="$(arg input_camera_info)" />
     <arg name="with_depth" value="true" />
-    <arg name="gui" value="true" />
+    <arg name="gui" value="false" />
   </include>
 
   <node name="people_pose_2d_to_3d"
