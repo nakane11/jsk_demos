@@ -15,8 +15,6 @@
     <arg name="language" default="ja-JP" />
   </include>
 
-  <include file="$(find virtual_force_publisher)/launch/virtual_force_publisher.launch" />
-
   <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
     <arg name="INPUT_IMAGE" value="$(arg input_rgb_image)" />
     <arg name="INPUT_DEPTH_IMAGE" value="$(arg input_depth_image)" />
