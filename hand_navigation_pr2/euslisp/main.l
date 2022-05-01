@@ -52,7 +52,7 @@
   (if (eq side :larm)
       (send bbox_req :position (float-vector -0.2 (+ 0.5 (/ w 2)) 0.0))
       (send bbox_req :position (float-vector -0.2 (- -0.5 (/ w 2)) 0.0)))
-  (send bbox_req :dimention (float-vector 0.6 w 3.0))
+  (send bbox_req :dimention (float-vector 0.6 w 2.0))
   (setq bbox_res (ros::service-call "/boundingbox_publisher/set_param" bbox_req))
   (send *ri* :speak-en "published bounding box" :wait t)
 

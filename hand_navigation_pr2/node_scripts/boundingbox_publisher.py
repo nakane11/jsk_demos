@@ -17,7 +17,7 @@ class BoundingBoxPublisher(object):
         self.position = [0.0, 0.5, 0.0]
         self.orientation = [0.0, 0.0, 0.0, 1.0]
         self.dimention = [1.5, 0.7, 3.0]
-        
+        self.on_ground = rospy.get_param("~on_ground")
         self.pub = rospy.Publisher('~output', BoundingBox, queue_size=1)
         self.rate = rospy.Rate(1)
         self.is_run = False
@@ -32,6 +32,8 @@ class BoundingBoxPublisher(object):
             bbox_msg.pose.position = Point(*self.position)
             bbox_msg.pose.orientation = Quaternion(*self.orientation)
             bbox_msg.dimensions = Vector3(*self.dimention)
+            if self.on_ground:
+                bbox_msg.pose.position.z += self.dimention[2]/2
             self.pub.publish(bbox_msg)
 
     def set_param_server(self, req):
