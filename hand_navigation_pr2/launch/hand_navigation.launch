@@ -15,7 +15,9 @@
     <arg name="language" default="ja-JP" />
   </include>
 
-  <include file="$(find virtual_force_publisher)/launch/dualarm_virtual_force_publisher.launch" />
+  <include file="$(find hand_navigation_pr2)/launch/virtual_force_publisher_transformed.launch" >
+    <arg name="gui" value="false" />
+  </include>
   
   <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
     <arg name="INPUT_IMAGE" value="$(arg input_rgb_image)" />

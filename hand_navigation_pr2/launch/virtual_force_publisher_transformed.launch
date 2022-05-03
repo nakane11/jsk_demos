@@ -1,0 +1,37 @@
+<launch>
+  <arg name="gui" default="true" />
+  
+  <include file="$(find virtual_force_publisher)/launch/dualarm_virtual_force_publisher.launch" />
+
+  <group ns="left_endeffector" >
+    <node name="transform_wrench"
+          pkg="jsk_topic_tools" type="transform_wrench.py"
+          output="screen" >
+      <remap from="~input" to="wrench" />
+      <remap from="~output" to="transformed_wrench" />
+      <rosparam>
+        target_frame_id: base_footprint
+      </rosparam>
+    </node>
+  </group>
+
+  <group ns="right_endeffector" >
+    <node name="transform_wrench"
+          pkg="jsk_topic_tools" type="transform_wrench.py"
+          output="screen" >
+      <remap from="~input" to="wrench" />
+      <remap from="~output" to="transformed_wrench" />
+      <rosparam>
+        target_frame_id: base_footprint
+      </rosparam>
+    </node>
+  </group>
+
+  <group if="$(arg gui)" >
+    <node name="rviz"
+          pkg="rviz" type="rviz"
+          args="-d $(find hand_navigation_pr2)/sample/config/wrench_transform.rviz">
+    </node>
+  </group>
+
+</launch>
