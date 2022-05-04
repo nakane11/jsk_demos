@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roseus
   rospy
   std_msgs
+  actionlib_msgs
   message_generation
 )
 
@@ -57,21 +58,21 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  PeopleSize.srv
   SetBBoxPublisher.srv
   )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  DIRECTORY action
+  FILES
+  HandNavigation.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs
+  actionlib_msgs
   )
 
 ################################################
@@ -105,8 +106,8 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES hand_navigation_pr2
-#  CATKIN_DEPENDS roseus std_msgs
+ # LIBRARIES hand_navigation_pr2
+ CATKIN_DEPENDS std_msgs actionlib_msgs
 #  DEPENDS system_lib
 )
 

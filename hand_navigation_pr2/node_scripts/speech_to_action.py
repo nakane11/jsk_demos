@@ -1,27 +1,31 @@
 #!/usr/bin/env python
 
 from speech_recognition_msgs.msg import SpeechRecognitionCandidates
-from jsk_topic_tools import ConnectionBasedTransport
 import rospy
+import actionlib
+import tf
+from nav_msgs.msg import Odometry
+import math
+from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryActionGoal
 
 
-class SpeechSToAction(ConnectionBasedTransport):
+class SpeechToAction():
 
     def __init__(self):
-        super(SpeechToAction, self).__init__()
-     
-    def subscribe(self):
+        self.move_base_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.move_base_client.wait_for_server()
+        self.move_base_trajectry_client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.move_base_trajectry_client.wait_for_server()
+
         self.sub = rospy.Subscriber('~input', SpeechRecognitionCandidates, self.callback)
 
-    def unsubscribe(self):
-        self.sub.unregister()
-
     def cb(self, msg):
-        speech = msg.transcript
-        
-        if speech == "":
+        speech = msg.transcript[0]
 
-            
+        if speech == "ストップ":
+            self.move_base_client.cancel_all_goals()
+            self.move_base_trajectry_client.cancel_all_goals()
 
 if __name__ == '__main__':
     rospy.init_node('speech_to_action')
