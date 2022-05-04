@@ -10,9 +10,9 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 1000 :head-controller)
   (setq hand-coords (hand-pose-subscriber))
   (if (> (elt (send hand-coords :pos) 1) 0)
-      (setq arm :larm)
-      (setq arm :rarm))
-  (if (eq arm :larm)
+      (setq *arm* :larm)
+      (setq *arm* :rarm))
+  (if (eq *arm* :larm)
       (progn
         (pr2-tuckarm-pose :larm :inside :single)
         (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(+ (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi)))
@@ -20,7 +20,7 @@
         (pr2-tuckarm-pose :rarm :inside :single)
         (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))))
   (send *ri* :wait-interpolation)
-  (if (eq arm :larm)
+  (if (eq *arm* :larm)
       (progn
         (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector -400 600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
         (send *pr2* :head :angle-vector #f(120.0 26.0)))
@@ -28,12 +28,14 @@
         (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
         (send *pr2* :head :angle-vector #f(-120.0 26.0))))
 
-  ;;(send *pr2* :head :look-at (send *pr2* arm :end-coords :worldpos))
+  ;;(send *pr2* :head :look-at (send *pr2* *arm* :end-coords :worldpos))
 
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   (send *irtviewer* :draw-objects)
-  arm)
+  (if (eq *arm* :larm)
+      (cons 3 (format nil "larm"))
+    (cons 3 (format nil "rarm"))))
 
 (defun hand-pose-subscriber ()
   (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
