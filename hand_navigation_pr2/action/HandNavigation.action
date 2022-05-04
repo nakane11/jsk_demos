@@ -1,5 +1,14 @@
-uint32 task_id
+# type
+uint8 BOOL = 0
+uint8 INT = 1
+uint8 FLOAT = 2
+uint8 STRING = 3
+uint8 ERROR_MESSAGE = 99
+      
+uint8 task_id
 ---
 bool success
+uint8 type
+string data
 ---
 string status
