@@ -1,0 +1,66 @@
+<launch>
+  <arg name="input_base_scan" value="/head_camera/depth_downsample/points" />
+  <arg name="input_camera_info" value="/head_camera/rgb/camera_info" />
+  <arg name="input_rgb_image" value="/head_camera/rgb/image_rect_color" />
+  <arg name="input_depth_image" value="/head_camera/depth_registered/hw_registered/image_rect" />
+  <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> 
+
+  <node name="people_pose_2d_to_3d"
+        pkg="jsk_perception" type="people_pose_2d_to_3d.py"
+        output="screen">
+    <remap from="~input/pose" to="$(arg input_pose_array)" />
+    <remap from="~input/info" to="$(arg input_camera_info)" />
+    <remap from="~input/depth" to="$(arg input_depth_image)" />
+    <rosparam subst_value="true">
+      approximate_sync: true
+      queue_size: 100
+    </rosparam>
+  </node>
+
+  <node name="people_poses_to_poses"
+        pkg="jsk_recognition_msgs" type="people_pose_array_to_pose_array.py">
+    <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
+  </node>
+
+  <node name="people_pose_array_to_boxes"
+        pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+    <rosparam>
+      frame_id:  base_link
+      boxes:
+      - position: [0, 0.5, 0.0]
+        dimension: [1.5, 0.7, 3.0]
+    </rosparam>
+  </node>
+
+  <group ns="filter_base_laser_scan" >
+    <node name="attention_clipper"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/AttentionClipper /head_camera/head_camera_nodelet_manager" >
+      <remap from="~input/points" to="$(arg input_base_scan)" />
+      <remap from="~input/box" to="/boundingbox_publisher/output" />
+      <rosparam>
+        use_multiple_attention: false
+        negative: true
+        approximate_sync: true
+        queue_size: 1000
+      </rosparam>
+    </node>
+
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl/ExtractIndices /head_camera/head_camera_nodelet_manager"
+          launch-prefix="xterm -e gdb --args"
+          output="screen" >
+      <remap from="~input" to="$(arg input_base_scan)" />
+      <remap from="~indices" to="attention_clipper/output/point_indices" />
+      <remap from="~output" to="/base_scan_filtered_non_human" />
+      <rosparam>
+        keep_organized: true
+        approximate_sync: true
+        queue_size: 100
+      </rosparam>
+    </node>
+
+  </group>
+
+</launch>
