@@ -1,0 +1,12 @@
+# task_id
+uint8 MEASURING_SHOULDER_WIDTH 1
+uint8 GIVE_HAND_POSE 2
+uint8 PUBLISH_BOUNDINGBOX 3
+uint8 RESIZE_FOOTPRINT 4
+uint8 RESET_FOOTPRINT 5
+
+uint8 task_id
+---
+bool success
+---
+string status

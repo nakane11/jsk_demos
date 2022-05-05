@@ -65,7 +65,7 @@ add_service_files(
 add_action_files(
   DIRECTORY action
   FILES
-  HandNavigation.action
+  GiveHandInit.action
 )
 
 ## Generate added messages and services with any dependencies listed here
