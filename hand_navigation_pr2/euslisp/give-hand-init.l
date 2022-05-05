@@ -6,7 +6,7 @@
 (pr2-init nil)
 
 (defun executwe-cb (server goal)
-  (let (msg result)
+  (let (msg)
     ;; (print (send goal :goal))
 
     ;; (dotimes (i (send goal :goal :task_id))
@@ -28,17 +28,17 @@
     (send server :set-succeeded msg)
     ))
 
-(setq hand-navigation-motion-server
+(setq give-hand-init-server
       (instance ros::simple-action-server
                 :init "give_hand_init"
-                hand_navigation_pr2::HandNavigationAction
+                hand_navigation_pr2::GiveHandInitAction
                 :execute-cb #'execute-cb))
 
 (ros::rate 10)
 (do-until-key
     ;; (ros::ros-info "running~%") 
  (ros::spin-once)
- (send hand-navigation-motion-server :worker)
+ (send give-hand-init-server :worker)
  (ros::sleep))
 
 
