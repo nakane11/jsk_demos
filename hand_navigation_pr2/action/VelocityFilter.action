@@ -1,3 +1,12 @@
+# calculation
+uint8 REPLACE  = 0
+uint8 ADD      = 1
+uint8 SUBTRACT = 2
+uint8 MULTIPLY = 3
+uint8 DIVIDE   = 4
+
+
+uint8 calculation
 float32 rate
 ---
 float32 speed

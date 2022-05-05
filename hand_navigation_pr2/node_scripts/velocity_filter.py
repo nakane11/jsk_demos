@@ -28,9 +28,21 @@ class VelocityFilter(ConnectionBasedTransport):
         self.pub.publish(filtered_msg)
     
     def action_cb(self, goal):
-        self.speed *= goal.rate
+        self.set_speed(goal)
         result = VelocityFilterResult(speed = self.speed)
         self.server.set_succeeded(result)
+
+    def set_speed(self, goal):
+        if goal.calculation == 0:
+            self.speed = goal.rate
+        elif goal.calculation == 1:
+            self.speed += goal.rate
+        elif goal.calculation == 2:
+            self.speed -= goal.rate
+        elif goal.calculation == 3:
+            self.speed *= goal.rate
+        elif goal.calculation == 4:
+            self.speed /= goal.rate
         
 if __name__ == '__main__':
     rospy.init_node('velocity_filter')
