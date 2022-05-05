@@ -60,25 +60,14 @@
     </rosparam>
   </node>
 
-  
-  <!-- <node name="people_pose_array_to_boxes" -->
-  <!--       pkg="hand_navigation_pr2" type="people_pose_array_to_boxes.py" -->
-  <!--       output="screen" > -->
-  <!--   <remap from="~input" to="people_pose_2d_to_3d/output/pose" /> -->
-  <!--   <rosparam> -->
-  <!--     base_frame_id: base_laser_link <!-\- base_footprint -\-> -->
-  <!--     width: 1.0 -->
-  <!--   </rosparam> -->
-  <!-- </node> -->
-  <!-- <node name="people_pose_array_to_boxes" -->
-  <!--       pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py"> -->
-  <!--   <rosparam> -->
-  <!--     frame_id:  base_footprint -->
-  <!--     boxes: -->
-  <!--     - position: [0, 0.5, 0.0] -->
-  <!--       dimension: [1.5, 0.7, 3.0] -->
-  <!--   </rosparam> -->
-  <!-- </node> -->
+  <node name="velocity_filter"
+        pkg="hand_navigation_pr2" type="velocity_filter.py">
+    <remap from="~input" to="/navigation/cmd_vel" />
+    <remap from="~output" to="/navigation/cmd_vel_filtered" />
+  </node>
+
+  <node pkg="roseus" type="roseus" name="give-hand-init" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/give-hand-init.l"  />
 
   <group ns="filter_base_laser_scan" >
     <node name="attention_clipper"
