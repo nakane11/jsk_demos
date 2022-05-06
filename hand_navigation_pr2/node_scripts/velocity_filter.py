@@ -3,14 +3,16 @@ from hand_navigation_pr2.msg import VelocityFilterAction, VelocityFilterResult
 from geometry_msgs.msg import Twist
 from jsk_topic_tools import ConnectionBasedTransport
 import rospy
+import actionlib
 
 class VelocityFilter(ConnectionBasedTransport):
 
     def __init__(self):
         super(VelocityFilter, self).__init__()
-        self.server = actionlib.SimpleActionServer('velocity_filter', VelocityFilterAction, self.action_cb, False)
-        self.pub = rospy.Publisher('~output', Twist, queue_size=1)
-
+        self.speed = 1.0
+        self.server = actionlib.SimpleActionServer('velocity_filter', VelocityFilterAction, self.action_cb)
+        self.pub = self.advertise('~output', Twist, queue_size=1)
+        
     def subscribe(self):
         self.sub = rospy.Subscriber('~input', Twist, self.subscribe_cb)
 
