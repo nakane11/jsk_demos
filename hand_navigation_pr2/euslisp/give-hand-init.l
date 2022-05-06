@@ -5,42 +5,9 @@
 (ros::roseus "give_hand_init_server")
 (pr2-init nil)
 
-(defun executwe-cb (server goal)
-  (let (msg)
-    ;; (print (send goal :goal))
 
-    ;; (dotimes (i (send goal :goal :task_id))
-    ;;   (setq msg (send server :feedback :status (format nil "~A" i)))
-    ;;   (send server :publish-feedback msg)
-    ;;   (unix::sleep 1)
-    ;;   )
-
-    (case (send goal :goal :task_id)
-          (1 (measuring-shoullder-width server))
-          (2 (give-hand-pose))
-          (3 (publish-boundingbox))
-          (4 (resize-footprint))
-          (5 (reset-footprint)))
-          
-    (setq msg (send server :result :success t))
-    ;; (send msg :result :type (car result))
-    ;; (send msg :result :data (cdr result))
-    (send server :set-succeeded msg)
-    ))
-
-(setq give-hand-init-server
-      (instance ros::simple-action-server
-                :init "give_hand_init"
-                hand_navigation_pr2::GiveHandInitAction
-                :execute-cb #'execute-cb))
-
-(ros::rate 10)
-(do-until-key
-    ;; (ros::ros-info "running~%") 
- (ros::spin-once)
- (send give-hand-init-server :worker)
- (ros::sleep))
-
+(defun test()
+  (send *ri* :speak-en "test" :wait t))
 
 (defun measuring-shoulder-width(&optional server)
   (let (width 100000.0)
@@ -79,5 +46,43 @@
 (defun reset-footprint()
   (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]")
   (send *ri* :speak-en "reset footprint" :wait t))
+
+
+(defun execute-cb (server goal)
+  (let (msg)
+    ;; (print (send goal :goal))
+
+    ;; (dotimes (i (send goal :goal :task_id))
+    ;;   (setq msg (send server :feedback :status (format nil "~A" i)))
+    ;;   (send server :publish-feedback msg)
+    ;;   (unix::sleep 1)
+    ;;   )
+    (ros::ros-info "print")
+    (case (send goal :goal :task_id)
+          (0 (test))
+          (1 (measuring-shoullder-width server))
+          (2 (give-hand-pose))
+          (3 (publish-boundingbox))
+          (4 (resize-footprint))
+          (5 (reset-footprint)))
+          
+    (setq msg (send server :result :success t))
+    ;; (send msg :result :type (car result))
+    ;; (send msg :result :data (cdr result))
+    (send server :set-succeeded msg)
+    ))
+
+(setq give-hand-init-server
+      (instance ros::simple-action-server
+                :init "give_hand_init"
+                hand_navigation_pr2::GiveHandInitAction
+                :execute-cb #'execute-cb))
+
+(ros::rate 10)
+(do-until-key
+    ;; (ros::ros-info "running~%") 
+ (ros::spin-once)
+ (send give-hand-init-server :worker)
+ (ros::sleep))
 
 
