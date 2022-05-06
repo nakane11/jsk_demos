@@ -1,12 +1,12 @@
 (ros::roseus-add-msgs "hand_navigation_pr2")
 (load "package://pr2eus/pr2-interface.l")
 
-(ros::roseus "hand-navigation")
+(ros::roseus "hand_navigation")
 (pr2-init nil)
 
 (when (not boundp '*init-client*)
   (setq *init-client* (instance ros::simple-action-client :init
-				"give-hand-init-server" hand_navigation_pr2::GiveHandInitAction)))
+				"give_hand_init_server" hand_navigation_pr2::GiveHandInitAction)))
 (send *init-client* :wait-for-server)
 
 (defun executwe-cb (server goal)
@@ -19,7 +19,7 @@
     ;;   (unix::sleep 1)
     ;;   )
 
-    (cond ((string-equal msg "一緒に歩こう")
+    (cond ((string-equal msg "")
 	   (setq goal-action (instanse hand_navigation_pr2::GiveHandInitGoal :init))
 	   (send goal-action :goal :task_id 1)
 	   (send *init-client* :send-goal goal-action)

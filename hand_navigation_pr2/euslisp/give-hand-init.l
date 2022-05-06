@@ -9,12 +9,9 @@
 (defun test()
   (send *ri* :speak-en "test" :wait t))
 
-(defun measuring-shoulder-width(&optional server)
+(defun measuring-shoulder-width()
   (let (width 100000.0)
     (while (> width 0.6)
-      (if server
-          (setq msg (send server :feedback :status "search peoplepose ..."))
-          (send server :publish-feedback msg))
       (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data)))
     (setq shoulder-width (* width 1.5))
     (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
@@ -48,7 +45,7 @@
   (send *ri* :speak-en "reset footprint" :wait t))
 
 (setq function-list (list (list 0 #'test)
-                          (list 1 #'measuring-shoullder-width server)
+                          (list 1 #'measuring-shoulder-width)
                           (list 2 #'give-hand-pose)
                           (list 3 #'publish-boundingbox)
                           (list 4 #'resize-footprint)
