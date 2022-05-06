@@ -60,7 +60,7 @@
 
 (defun go-to-corridor()
   (setq spot-list (room-to-corridor-coords))
-  (send *ri* :move-to (pop spot-list) :frame-id :map)
+  (send *ri* :move-to (pop spot-list) :frame-id "map")
   (dolist (i spot-list)
     (setq tmp (convert-go-to-robot i))
     (send *ri* :go-pos-unsafe 0 0 (cadr tmp))
@@ -68,7 +68,7 @@
 
 (defun go-to-room()
   (setq spot-list (corridor-to-room-coords))
-  (send *ri* :move-to (pop spot-list) :frame-id :map)
+  (send *ri* :move-to (pop spot-list) :frame-id "map")
   (dolist (i spot-list)
     (setq tmp (convert-go-to-robot i))
     (send *ri* :go-pos-unsafe 0 0 (cadr tmp))
