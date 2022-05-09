@@ -4,12 +4,12 @@
 (ros::roseus "hand_navigation")
 (pr2-init nil)
 
-(when (not boundp '*init-client*)
+(when (not (boundp '*init-client*))
   (setq *init-client* (instance ros::simple-action-client :init
-				"give_hand_init_server" hand_navigation_pr2::GiveHandInitAction)))
+				"give_hand_init" hand_navigation_pr2::GiveHandInitAction)))
 (send *init-client* :wait-for-server)
 
-(defun executwe-cb (server goal)
+(defun execute-cb (server goal)
   (let (msg (send goal :goal :transcript))
     ;; (print (send goal :goal))
 
@@ -20,8 +20,8 @@
     ;;   )
 
     (cond ((string-equal msg "")
-	   (setq goal-action (instanse hand_navigation_pr2::GiveHandInitGoal :init))
-	   (send goal-action :goal :task_id 1)
+	   (setq goal-action (instance hand_navigation_pr2::GiveHandInitGoal :init))
+	   (send goal-action :task_id 1)
 	   (send *init-client* :send-goal goal-action)
 	   (send *init-client* :wait-for-result)))
           
