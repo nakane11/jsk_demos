@@ -55,9 +55,9 @@
 (defun execute-cb (server goal)
   (let (msg)
     (ros::ros-info "task_id:~A"(send goal :goal :task_id))
-    ;; (setq *tmp* (send goal :goal :task_id))
-    (funcall (cadr (assoc '(send goal :goal :task_id) function-list)))
-    
+    (setq num (send goal :goal :task_id))
+    (funcall (cadr (assoc num function-list)))
+                         
     (setq msg (send server :result :success t))
     (send server :set-succeeded msg)
     ))
@@ -67,11 +67,10 @@
       (instance ros::simple-action-server
                 :init "give_hand_init"
                 hand_navigation_pr2::GiveHandInitAction
-                :execute-cb cb)) ;#'execute-cb))
+                :execute-cb cb)) 
 
 (ros::rate 10)
 (do-until-key
-    ;; (ros::ros-info "running~%") 
  (ros::spin-once)
  (send give-hand-init-server :worker)
  (ros::sleep))
