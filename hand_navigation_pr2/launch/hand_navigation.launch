@@ -1,10 +1,16 @@
 <launch>
-  <arg name="gui" value="false" />
+  
+  <arg name="gui" value="true" />
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
   <arg name="input_base_scan" value="/base_scan_filtered" />
   <arg name="input_tilt_scan" value="/tilt_scan_filtered/navigation" />
-  
+  <arg name="manager_name" default="hand_navigation_pr2_manager" />
+  <arg name="manager" default="/$(arg manager_name)" />
+
+  <node name="$(arg manager_name)"
+        pkg="nodelet" type="nodelet"
+        args="manager"/>
 
   <arg name="input_camera_info" value="/kinect_head/rgb/camera_info" />
   <arg name="input_rgb_image" value="/kinect_head/rgb/image_rect_color" />
@@ -66,13 +72,13 @@
     <remap from="~output" to="/navigation/cmd_vel_filtered" />
   </node>
 
-  <node pkg="roseus" type="roseus" name="give_hand_init" output="screen"
-        args="$(find hand_navigation_pr2)/euslisp/give-hand-init.l"  />
+  <!-- <node pkg="roseus" type="roseus" name="give_hand_init" output="screen" -->
+  <!--       args="$(find hand_navigation_pr2)/euslisp/give-hand-init.l"  /> -->
 
   <group ns="filter_base_laser_scan" >
     <node name="attention_clipper"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper /kinect_head/kinect_head_nodelet_manager" >
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_base_scan)" />
       <remap from="~input/box" to="/boundingbox_publisher/output" />
       <rosparam>
@@ -85,7 +91,7 @@
 
     <node name="extract_indices"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices /kinect_head/kinect_head_nodelet_manager">
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
       <remap from="~input" to="$(arg input_base_scan)" />
       <remap from="~indices" to="attention_clipper/output/point_indices" />
       <remap from="~output" to="/base_scan_filtered_non_human" />
@@ -106,7 +112,7 @@
   <group ns="filter_tilt_laser_scan" >
     <node name="attention_clipper"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper /kinect_head/kinect_head_nodelet_manager" >
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_tilt_scan)" />
       <remap from="~input/box" to="/boundingbox_publisher/output" />
       <rosparam>
@@ -119,7 +125,7 @@
 
     <node name="extract_indices"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices /kinect_head/kinect_head_nodelet_manager">
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
       <remap from="~input" to="$(arg input_tilt_scan)" />
       <remap from="~indices" to="attention_clipper/output/point_indices" />
       <remap from="~output" to="/tilt_scan_filtered_non_human" />
