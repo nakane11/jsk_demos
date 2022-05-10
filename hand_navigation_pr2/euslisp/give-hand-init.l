@@ -1,4 +1,5 @@
 (ros::roseus-add-msgs "hand_navigation_pr2")
+(ros::roseus-add-srvs "hand_navigation_pr2")
 (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 (load "package://pr2eus/pr2-interface.l")
 
@@ -19,7 +20,7 @@
 
 (defun publish-boundingbox(&key shoulder-width target-arm)
   (setq width (or shoulder-width (ros::get-param "/shoulder_width")))
-  (setq arm (or target-arm (ros::get-param "/target-arm")))
+  (setq arm (or target-arm (ros::get-param "/target_arm")))
   
   (setq bbox_req (instance hand_navigation_pr2::SetBBoxPublisherRequest :init))
   (send bbox_req :switch t)
@@ -32,7 +33,7 @@
 
 (defun resize-footprint(&key shoulder-width target-arm)
   (setq width (or shoulder-width (ros::get-param "/shoulder_width")))
-  (setq arm (or target-arm (ros::get-param "/target-arm")))
+  (setq arm (or target-arm (ros::get-param "/target_arm")))
 
   (if (string-equal arm "larm")
       (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 width) (+ 0.5 width)))
