@@ -61,7 +61,7 @@
   <node name="boundingbox_publisher"
         pkg="hand_navigation_pr2" type="boundingbox_publisher.py">
     <rosparam>
-      base_frame_id: base_footprint
+      base_frame_id: base_link
       on_ground: true
     </rosparam>
   </node>
