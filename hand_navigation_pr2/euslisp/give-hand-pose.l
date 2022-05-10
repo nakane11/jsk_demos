@@ -34,7 +34,7 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   ;; (send *irtviewer* :draw-objects)
-  (ros::set-param "/target-arm" arm))
+  (ros::set-param "/target_arm" arm))
 
 (defun hand-pose-subscriber ()
   (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
