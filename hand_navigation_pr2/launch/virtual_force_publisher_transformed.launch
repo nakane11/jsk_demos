@@ -8,7 +8,7 @@
           pkg="jsk_topic_tools" type="transform_wrench.py"
           output="screen" >
       <remap from="~input" to="wrench" />
-      <remap from="~output" to="transformed_wrench" />
+      <remap from="~output" to="wrench_transformed" />
       <rosparam>
         target_frame_id: base_footprint
       </rosparam>
@@ -20,7 +20,7 @@
           pkg="jsk_topic_tools" type="transform_wrench.py"
           output="screen" >
       <remap from="~input" to="wrench" />
-      <remap from="~output" to="transformed_wrench" />
+      <remap from="~output" to="wrench_transformed" />
       <rosparam>
         target_frame_id: base_footprint
       </rosparam>
