@@ -1,7 +1,7 @@
 <launch>
   <arg name="gui" default="true" />
   
-  <include file="$(find virtual_force_publisher)/launch/dualarm_virtual_force_publisher.launch" />
+  <!-- <include file="$(find virtual_force_publisher)/launch/dualarm_virtual_force_publisher.launch" /> -->
 
   <group ns="left_endeffector" >
     <node name="transform_wrench"
