@@ -3,7 +3,7 @@
 (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 (load "package://pr2eus/pr2-interface.l")
 
-(ros::roseus "give_hand_init_server")
+(ros::roseus "give_hand_init")
 (pr2-init nil)
 
 
@@ -66,7 +66,7 @@
 (setq cb #'execute-cb)
 (setq give-hand-init-server
       (instance ros::simple-action-server
-                :init "give_hand_init"
+                :init "give_hand_init_action"
                 hand_navigation_pr2::GiveHandInitAction
                 :execute-cb cb)) 
 
