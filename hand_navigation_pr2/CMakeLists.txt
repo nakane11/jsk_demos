@@ -68,6 +68,7 @@ add_action_files(
   GiveHandInit.action
   VelocityFilter.action
   Speech.action
+  Go.action
 )
 
 ## Generate added messages and services with any dependencies listed here

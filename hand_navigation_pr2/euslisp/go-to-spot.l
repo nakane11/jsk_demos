@@ -20,7 +20,9 @@
 
 
 (defun go-to-spot (name)
-  (let* ((ret (get-spot-coords name))(goal-pose (car ret)) (frame-id (cdr ret)))
+  (let* ((ret (get-spot-coords name))
+         (goal-pose (car ret))
+         (frame-id (cdr ret)))
     (send *ri* :clear-costmap)
     (send *ri* :move-to goal-pose :frame-id frame-id)
     ))
