@@ -5,7 +5,6 @@
 (pr2-init nil)
 
 (defparameter *spots* nil)
-(setq *destination* nil)
 
 (defun get-spot-coords (name)
   (unless *spots*
@@ -29,35 +28,8 @@
     (send *ri* :move-to goal-pose :frame-id frame-id)
     ))
 
-(defun callback (server goal)
-  (let (msg)
-    (case (send goal :goal :request)
-          (0
-           (setq msg (send server :result :result "failed"))
-           (cond ((string-equal (send goal :goal :destination) "center")
-                  (progn
-                    (setq *destination* "/eng2/7f/room73B2-center")
-                    (ros::ros-info "2")
-                    (when (go-to-spot *destination*)
-                        (send msg :result "succeeded"))))))
-          (1
-           (send *ri* :go-stop)
-           (setq msg (send server :result :result "paused")))
-          (2
-           (if *destination*
-               (progn
-                 (setq res (go-to-spot *destination*))
-                 (if res
-                     (setq msg (send server :result :result "succeeded"))
-                   (setq msg (send server :result :result "failed"))))
-             (setq msg (send server :result :result "no destination"))))
-          (3
-           (send *ri* :go-stop)
-           (setq msg (send server :result :result "cancelled"))))
-    (send server :set-succeeded msg)))
-
 (defclass go-action
-  :slots (go-server))
+  :slots (go-server destination))
 
 (defmethod go-action
   (:init ()
@@ -66,9 +38,39 @@
                (instance ros::simple-action-server
                          :init "go_action"
                          hand_navigation_pr2::GoAction
-                         :execute-cb #'callback))
+                         :execute-cb `(lambda-closure nil 0 0 (server goal)
+						      (send ,self :callback server goal))))
          self)
-         
+
+  (:callback (server goal)
+    (let ((msg (send server :result :result "failed"))
+          (request (send goal :goal :request)))
+      (cond ((equal request 0)
+             (cond ((string-equal (send goal :goal :destination) "center")
+                    (ros::ros-info "1")
+                    (setq destination "/eng2/7f/room73B2-center")
+                    (ros::ros-info "2")
+                    (setq res (go-to-spot destination))
+                    (when res
+                      (setq msg (send server :result :result "succeeded"))))
+                   (t nil)))
+            ((equal request 1)
+             (send *ri* :go-stop)
+             (setq msg (send server :result :result "paused")))
+            ((equal request 2)
+             (if destination
+                 (progn
+                   (setq res (go-to-spot destination))
+                   (if res
+                       (setq msg (send server :result :result "succeeded"))
+                     (setq msg (send server :result :result "failed"))))
+               (setq msg (send server :result :result "no destination"))))
+            ((equal request 3)
+             (send *ri* :go-stop)
+             (setq msg (send server :result :result "cancelled")))
+  	  (t nil))
+      (send server :set-succeeded msg)))
+        
   (:run ()
    (do-until-key
     (ros::spin-once)
