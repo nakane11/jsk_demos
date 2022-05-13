@@ -47,7 +47,7 @@
    t)
 
   (:rad-to-vel (rad)
-               (* 0.1 (tan (/ (rad - (/ pi 4)) 1.1))))
+               (* 0.35 (tan (/ (- rad (/ pi 4)) 1.1))))
 
   (:run ()
    (when (ros::has-param "/target_arm")
@@ -55,8 +55,8 @@
      (cond
       ((and (string-equal arm "larm") (not (null l-force)) (not (null l-shoulder-pan)))
        (progn
-         (if (or (< l-shoulder-pan 0) (> l-shoulder-pan 1.57))
-             (setq rotate (/ l-shoulder-pan pi))
+         (if (or (< l-shoulder-pan 0.2) (> l-shoulder-pan 1.37))
+             (setq rotate (send self :rad-to-vel l-shoulder-pan))
            (setq rotate nil))
          (setq tmp-x (send l-force :x))
          (setq tmp-y (send l-force :y))
@@ -64,8 +64,8 @@
 
       ((and (string-equal arm "rarm") (not (null r-force)) (not (null r-shoulder-pan)))
        (progn
-         (if ((or (< r-shoulder-pan -1.57) (> r-shoulder-pan 0)))
-             (setq rotate (- (self :rad-to-vel (abs r-shoulder-pan))))
+         (if ((or (< r-shoulder-pan -1.37) (> r-shoulder-pan 0.2)))
+             (setq rotate (- (send self :rad-to-vel (abs r-shoulder-pan))))
            (setq rotate nil))
          (setq tmp-x (send r-force :x))
          (setq tmp-y (send r-force :y))
@@ -74,22 +74,22 @@
 
      (ros::ros-info "x: ~A  y: ~A z: ~A" tmp-x tmp-y tmp-z)
 
-     ;; (unless (null rotate)
-     ;;   (send *ri* :send-cmd-vel-raw 0 0 rotate)
-     ;;   (setq rotate nil)
-     ;;   (return-from :run))
-     
-     ;; (when (send self :check :y)
-     ;;   (when (> tmp-y 10)
-     ;;     (send *ri* :send-cmd-vel-raw 0 (/ (log tmp-y) 8.0) 0))
-     ;;   (when (< tmp-y -10)
-     ;;     (send *ri* :send-cmd-vel-raw 0 (- (/ (log (abs tmp-y)) 8.0)) 0)))
+     (block send-cmd-vel
+            (unless (null rotate)
+              (send *ri* :send-cmd-vel-raw 0 0 rotate)
+              (return-from send-cmd-vel))
+            
+            (when (send self :check :y)
+              (when (> tmp-y 10)
+                (send *ri* :send-cmd-vel-raw 0 (/ (log tmp-y) 8.0) 0))
+              (when (< tmp-y -10)
+                (send *ri* :send-cmd-vel-raw 0 (- (/ (log (abs tmp-y)) 8.0)) 0)))
 
-     ;; (when (send self :check :x)
-     ;;   (when (> tmp-x 18)
-     ;;     (send *ri* :send-cmd-vel-raw (/ (log tmp-x) 6.0) 0 0))
-     ;;   (when (< tmp-x -12)
-     ;;     (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0)))
+            (when (send self :check :x)
+              (when (> tmp-x 18)
+                (send *ri* :send-cmd-vel-raw (/ (log tmp-x) 6.0) 0 0))
+              (when (< tmp-x -15)
+                (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
 
      (when (> (length x-list) 10)
        (setq x-list (cdr x-list)))
