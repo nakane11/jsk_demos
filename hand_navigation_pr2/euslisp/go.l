@@ -5,7 +5,7 @@
 (pr2-init nil)
 
 (defparameter *spots* nil)
-(defparameter *destination* nil)
+(setq *destination* nil)
 
 (defun get-spot-coords (name)
   (unless *spots*
@@ -21,6 +21,7 @@
     (cons spot-coords frame-id)))
 
 (defun go-to-spot (name)
+  (ros::ros-info "2.5~%")
   (let* ((ret (get-spot-coords name))
          (goal-pose (car ret))
          (frame-id (cdr ret)))
@@ -32,14 +33,13 @@
   (let (msg)
     (case (send goal :goal :request)
           (0
-           (ros::ros-info "2~%")
            (setq msg (send server :result :result "failed"))
            (cond ((string-equal (send goal :goal :destination) "center")
                   (progn
-                    (setq *destination* "center")
-                    (when (go-to-spot "/eng2/7f/room73B2-center")
-                        (send msg :result "succeeded")))))
-           (ros::ros-info "3~%"))
+                    (setq *destination* "/eng2/7f/room73B2-center")
+                    (ros::ros-info "2")
+                    (when (go-to-spot *destination*)
+                        (send msg :result "succeeded"))))))
           (1
            (send *ri* :go-stop)
            (setq msg (send server :result :result "paused")))
