@@ -9,7 +9,7 @@
   (expt (+ (expt (send force :x) 2) (expt (send force :y) 2) (expt (send force :z) 2)) 0.5))
   
 (defclass wrench-subscriber
-  :slots (arm l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan))
+  :slots (arm l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count))
 
 (defmethod wrench-subscriber
   (:init ()
@@ -18,11 +18,13 @@
    (ros::subscribe "/joint_states" sensor_msgs::Jointstate #'send self :joint-cb)
    (setq x-list nil)
    (setq y-list nil)
+   (setq count 0)
    self)
 
   (:left-cb
    (msg)
-   (setq l-force (send (send msg :wrench) :force)))
+   (setq l-force (send (send msg :wrench) :force))
+   )
 
   (:right-cb
    (msg)
@@ -52,6 +54,9 @@
   (:run ()
    (when (ros::has-param "/target_arm")
      (setq arm (ros::get-param "/target_arm"))
+     (if (> count 20)
+         (ros::set-param "/grasped" nil)
+         (ros::set-param "/grasped" t))
      (cond
       ((and (string-equal arm "larm") (not (null l-force)) (not (null l-shoulder-pan)))
        (progn
@@ -90,6 +95,10 @@
                 (send *ri* :send-cmd-vel-raw (/ (log tmp-x) 6.0) 0 0))
               (when (< tmp-x -15)
                 (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
+
+     (if (< (abs (- (last x-list) tmp-x)) 5)
+         (setq count (+ count 1))
+         (setq count 0))
 
      (when (> (length x-list) 10)
        (setq x-list (cdr x-list)))
