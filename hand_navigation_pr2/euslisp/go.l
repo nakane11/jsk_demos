@@ -1,4 +1,5 @@
 (ros::roseus-add-msgs "hand_navigation_pr2")
+(ros::roseus-add-msgs "move_base_msgs")
 (load "package://pr2eus/pr2-interface.l")
 
 (ros::roseus "go_action")
@@ -20,61 +21,67 @@
     (cons spot-coords frame-id)))
 
 (defun go-to-spot (name)
-  (ros::ros-info "2.5~%")
   (let* ((ret (get-spot-coords name))
          (goal-pose (car ret))
          (frame-id (cdr ret)))
     (send *ri* :clear-costmap)
-    (send *ri* :move-to goal-pose :frame-id frame-id)
+    (send *ri* :move-to goal-pose :no-wait t :frame-id frame-id)
     ))
 
 (defclass go-action
-  :slots (go-server destination))
+  :slots (destination))
 
 (defmethod go-action
   (:init ()
-         (ros::rate 10)
-         (setq go-server
-               (instance ros::simple-action-server
-                         :init "go_action"
-                         hand_navigation_pr2::GoAction
-                         :execute-cb `(lambda-closure nil 0 0 (server goal)
-						      (send ,self :callback server goal))))
-         self)
+   (ros::rate 10)
+   (ros::advertise "go/result" std_msgs::string 1)
+   (ros::subscribe "go/request" hand_navigation_pr2::GoRequest #'send self :req-cb)
+   (ros::subscribe "/move_base/result" move_base_msgs::MoveBaseActionResult #'send self :move-base-cb)
+   self)
 
-  (:callback (server goal)
-    (let ((msg (send server :result :result "failed"))
-          (request (send goal :goal :request)))
-      (cond ((equal request 0)
-             (cond ((string-equal (send goal :goal :destination) "center")
-                    (ros::ros-info "1")
-                    (setq destination "/eng2/7f/room73B2-center")
-                    (ros::ros-info "2")
-                    (setq res (go-to-spot destination))
-                    (when res
-                      (setq msg (send server :result :result "succeeded"))))
-                   (t nil)))
-            ((equal request 1)
-             (send *ri* :go-stop)
-             (setq msg (send server :result :result "paused")))
-            ((equal request 2)
-             (if destination
-                 (progn
-                   (setq res (go-to-spot destination))
-                   (if res
-                       (setq msg (send server :result :result "succeeded"))
-                     (setq msg (send server :result :result "failed"))))
-               (setq msg (send server :result :result "no destination"))))
-            ((equal request 3)
-             (send *ri* :go-stop)
-             (setq msg (send server :result :result "cancelled")))
-  	  (t nil))
-      (send server :set-succeeded msg)))
+  (:move-base-cb (msg)
+                 (setq result (instance std_msgs::string :init))
+                 (setq s (send msg :status :status))
+                 (cond
+                   ((eq s 2)
+                    (send result :data "cancel executed"))
+                   ((eq s 3)
+                    (send result :data "succeeded"))
+                   ((eq s 4) (send result :data "failed"))
+                   (t (return-from :move-base-cb nil)))
+                 (ros::publish "go/result" result))
+                 
+  (:req-cb (msg)
+    (let ((result (instance std_msgs::string :init))
+          (request (send msg :request)))
+      (case request
+        (0
+         (block b
+           (cond ((string-equal (send msg :destination) "center")
+                  (setq destination "/eng2/7f/room73B2-center")
+                  (setq res (go-to-spot destination)))
+                 (t
+                  (send result :data "cannot find destination")
+                  (return-from b nil)))
+           (send result :data "started")))
+        (1
+         (send *ri* :go-stop)
+         (send result :data "paused"))
+        (2
+         (if destination
+             (progn
+               (setq res (go-to-spot destination))
+               (send result :data "started"))
+             (send result :data "no destination")))
+        (3
+         (send *ri* :go-stop)
+         (setq destination nil)
+         (send result :data "cancel called")))
+      (ros::publish "go/result" result)))
         
   (:run ()
    (do-until-key
     (ros::spin-once)
-    (send go-server :worker)
     (ros::sleep))))
 
 (setq go (instance go-action :init))
