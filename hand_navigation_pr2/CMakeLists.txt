@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   GoRequest.msg
+  InitRequest.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -64,9 +65,7 @@ add_service_files(
 add_action_files(
   DIRECTORY action
   FILES
-  GiveHandInit.action
   VelocityFilter.action
-  Speech.action
 )
 
 ## Generate added messages and services with any dependencies listed here

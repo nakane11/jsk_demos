@@ -1,0 +1,9 @@
+# task_id
+uint8 RESET=0
+uint8 SET_SHOULDER_WIDTH=1
+uint8 SET_TARGET_ARM=2
+uint8 PUBLISH_BOUNDINGBOX=3
+uint8 RESIZE_FOOTPRINT=4
+
+uint8 request
+
