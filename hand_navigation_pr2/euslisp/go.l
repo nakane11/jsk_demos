@@ -34,8 +34,8 @@
 (defmethod go-action
   (:init ()
    (ros::rate 10)
-   (ros::advertise "go/result" std_msgs::string 1)
-   (ros::subscribe "go/request" hand_navigation_pr2::GoRequest #'send self :req-cb)
+   (ros::advertise "/go/result" std_msgs::string 1)
+   (ros::subscribe "/go/request" hand_navigation_pr2::GoRequest #'send self :req-cb)
    (ros::subscribe "/move_base/result" move_base_msgs::MoveBaseActionResult #'send self :move-base-cb)
    self)
 
@@ -44,18 +44,22 @@
                  (setq s (send msg :status :status))
                  (cond
                    ((eq s 2)
-                    (send result :data "cancel executed"))
+                    (send result :data "move-base cancel executed"))
                    ((eq s 3)
-                    (send result :data "succeeded"))
-                   ((eq s 4) (send result :data "failed"))
+                    (send result :data "move-base succeeded"))
+                   ((eq s 4) (send result :data "move-base failed"))
                    (t (return-from :move-base-cb nil)))
-                 (ros::publish "go/result" result))
+                 (ros::publish "/go/result" result))
                  
   (:req-cb (msg)
     (let ((result (instance std_msgs::string :init))
           (request (send msg :request)))
       (case request
         (0
+         (send *ri* :go-stop)
+         (setq destination nil)
+         (send result :data "move-base reset called")))
+        (1
          (block b
            (cond ((string-equal (send msg :destination) "center")
                   (setq destination "/eng2/7f/room73B2-center")
@@ -63,21 +67,18 @@
                  (t
                   (send result :data "cannot find destination")
                   (return-from b nil)))
-           (send result :data "started")))
-        (1
-         (send *ri* :go-stop)
-         (send result :data "paused"))
+           (send result :data "move-base started")))
         (2
+         (send *ri* :go-stop)
+         (send result :data "move-base paused"))
+        (3
          (if destination
              (progn
                (setq res (go-to-spot destination))
-               (send result :data "started"))
+               (send result :data "move-base started"))
              (send result :data "no destination")))
-        (3
-         (send *ri* :go-stop)
-         (setq destination nil)
-         (send result :data "cancel called")))
-      (ros::publish "go/result" result)))
+
+        (ros::publish "/go/result" result)))
         
   (:run ()
    (do-until-key
