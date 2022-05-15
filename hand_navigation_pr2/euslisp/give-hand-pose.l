@@ -6,10 +6,9 @@
 (when (boundp '*tfl*)
   (setq *tfl* (instance ros::transform-listener :init)))
 
-(defun give-hand-pose ()
+(defun give-hand-pose (hand-coords)
   (send *pr2* :head :angle-vector #f(0.0 14.694))
   (send *ri* :angle-vector (send *pr2* :angle-vector) 1000 :head-controller)
-  (setq hand-coords (hand-pose-subscriber))
   (if (> (elt (send hand-coords :pos) 1) 0)
       (setq arm "larm")
       (setq arm "rarm"))
@@ -34,7 +33,8 @@
   (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
   (send *ri* :wait-interpolation)
   ;; (send *irtviewer* :draw-objects)
-  (ros::set-param "/target_arm" arm))
+  (ros::set-param "/target_arm" arm)
+  t)
 
 (defun hand-pose-subscriber ()
   (setq hand-pose-array (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray))
@@ -48,8 +48,8 @@
         (setq camera-to-hand-coords (ros::tf-pose->coords (car (send hand-pose :poses))))
         (setq base-to-hand (send base-to-camera-coords :transform camera-to-hand-coords))
         (return-from hand-pose-subscriber base-to-hand)
-      )))
-  (hand-pose-subscriber))
+        )))
+  nil)
 
 
 
