@@ -15,10 +15,11 @@
   <arg name="input_camera_info" value="/kinect_head/rgb/camera_info" />
   <arg name="input_rgb_image" value="/kinect_head/rgb/image_rect_color" />
   <arg name="input_depth_image" value="/kinect_head/depth_registered/hw_registered/image_rect" />
-  <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> 
+  <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" />
 
   <include file="$(find hand_navigation_pr2)/launch/speech_recognition.launch" >
     <arg name="language" default="ja-JP" />
+    <arg name="continuous" default="true" />
   </include>
 
   <include file="$(find hand_navigation_pr2)/launch/virtual_force_publisher_transformed.launch" >
@@ -73,75 +74,75 @@
   </node>
 
   <!-- <node pkg="roseus" type="roseus" name="give_hand_init" output="screen" -->
-  <!--       args="$(find hand_navigation_pr2)/euslisp/give-hand-init.l"  /> -->
+  <!--       args="$(find hand_navigation_pr2)/euslisp/init.l"  /> -->
 
-  <group ns="filter_base_laser_scan" >
-    <node name="attention_clipper"
-          pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper $(arg manager)" >
-      <remap from="~input/points" to="$(arg input_base_scan)" />
-      <remap from="~input/box" to="/boundingbox_publisher/output" />
-      <rosparam>
-        use_multiple_attention: false
-        negative: true
-        approximate_sync: true
-        queue_size: 1000
-      </rosparam>
-    </node>
+  <!-- <group ns="filter_base_laser_scan" > -->
+  <!--   <node name="attention_clipper" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/AttentionClipper $(arg manager)" > -->
+  <!--     <remap from="~input/points" to="$(arg input_base_scan)" /> -->
+  <!--     <remap from="~input/box" to="/boundingbox_publisher/output" /> -->
+  <!--     <rosparam> -->
+  <!--       use_multiple_attention: false -->
+  <!--       negative: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 1000 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
 
-    <node name="extract_indices"
-          pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices $(arg manager)">
-      <remap from="~input" to="$(arg input_base_scan)" />
-      <remap from="~indices" to="attention_clipper/output/point_indices" />
-      <remap from="~output" to="/base_scan_filtered_non_human" />
-      <rosparam>
-        keep_organized: true
-        approximate_sync: true
-        queue_size: 100
-      </rosparam>
-    </node>
+  <!--   <node name="extract_indices" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/ExtractIndices $(arg manager)"> -->
+  <!--     <remap from="~input" to="$(arg input_base_scan)" /> -->
+  <!--     <remap from="~indices" to="attention_clipper/output/point_indices" /> -->
+  <!--     <remap from="~output" to="/base_scan_filtered_non_human" /> -->
+  <!--     <rosparam> -->
+  <!--       keep_organized: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 100 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
 
-    <node name="pointcloud_mux"
-          pkg="topic_tools" type="mux"
-          args="$(arg input_base_scan)_mux $(arg input_base_scan) /base_scan_filtered_non_human" >
-      <remap from="mux" to="pointcloud_mux"/>
-    </node>
-  </group>
+  <!--   <node name="pointcloud_mux" -->
+  <!--         pkg="topic_tools" type="mux" -->
+  <!--         args="$(arg input_base_scan)_mux $(arg input_base_scan) /base_scan_filtered_non_human" > -->
+  <!--     <remap from="mux" to="pointcloud_mux"/> -->
+  <!--   </node> -->
+  <!-- </group> -->
 
-  <group ns="filter_tilt_laser_scan" >
-    <node name="attention_clipper"
-          pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper $(arg manager)" >
-      <remap from="~input/points" to="$(arg input_tilt_scan)" />
-      <remap from="~input/box" to="/boundingbox_publisher/output" />
-      <rosparam>
-        use_multiple_attention: false
-        negative: true
-        approximate_sync: true
-        queue_size: 1000
-      </rosparam>
-    </node>
+  <!-- <group ns="filter_tilt_laser_scan" > -->
+  <!--   <node name="attention_clipper" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/AttentionClipper $(arg manager)" > -->
+  <!--     <remap from="~input/points" to="$(arg input_tilt_scan)" /> -->
+  <!--     <remap from="~input/box" to="/boundingbox_publisher/output" /> -->
+  <!--     <rosparam> -->
+  <!--       use_multiple_attention: false -->
+  <!--       negative: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 1000 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
 
-    <node name="extract_indices"
-          pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices $(arg manager)">
-      <remap from="~input" to="$(arg input_tilt_scan)" />
-      <remap from="~indices" to="attention_clipper/output/point_indices" />
-      <remap from="~output" to="/tilt_scan_filtered_non_human" />
-      <rosparam>
-        keep_organized: true
-        approximate_sync: true
-        queue_size: 100
-      </rosparam>
-    </node>
+  <!--   <node name="extract_indices" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/ExtractIndices $(arg manager)"> -->
+  <!--     <remap from="~input" to="$(arg input_tilt_scan)" /> -->
+  <!--     <remap from="~indices" to="attention_clipper/output/point_indices" /> -->
+  <!--     <remap from="~output" to="/tilt_scan_filtered_non_human" /> -->
+  <!--     <rosparam> -->
+  <!--       keep_organized: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 100 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
 
-    <node name="pointcloud_mux"
-          pkg="topic_tools" type="mux"
-          args="/tilt_scan_filtered_mux $(arg input_tilt_scan) /tilt_scan_filtered_non_human" >
-      <remap from="mux" to="pointcloud_mux"/>
-    </node>
-  </group>
+  <!--   <node name="pointcloud_mux" -->
+  <!--         pkg="topic_tools" type="mux" -->
+  <!--         args="/tilt_scan_filtered_mux $(arg input_tilt_scan) /tilt_scan_filtered_non_human" > -->
+  <!--     <remap from="mux" to="pointcloud_mux"/> -->
+  <!--   </node> -->
+  <!-- </group> -->
 
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"

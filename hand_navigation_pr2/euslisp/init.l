@@ -26,14 +26,14 @@
   (:set-shoulder-width ()
                        (when shoulder-width
                          (return-from :set-shoulder-width t))
-                       (send *ri* :speak-jp "正面に立ってください" :wait t)
+                       ;; (send *ri* :speak-jp "正面に立ってください" :wait t)
                        (let (width 100000.0)
                          (while (> width 0.6)
                            (if is-cancelled
                                (return-from :set-shoulder-width nil)
                                (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data))))
                          (setq shoulder-width (* width 1.5))
-                         (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
+                         ;; (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
                          t))
 
   (:set-target-arm ()
@@ -82,7 +82,8 @@
 
   (:reset-footprint()
                    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]")
-                   (send *ri* :speak-en "reset footprint" :wait t))
+                   ;; (send *ri* :speak-en "reset footprint" :wait t)
+                   )
   
   
   (:init ()
