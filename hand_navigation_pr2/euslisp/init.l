@@ -24,15 +24,22 @@
      t)
     
   (:set-shoulder-width ()
+                       (setq is-cancelled nil)
                        (when shoulder-width
                          (return-from :set-shoulder-width t))
                        ;; (send *ri* :speak-jp "正面に立ってください" :wait t)
-                       (let (width 100000.0)
+                       (let ((width 100000.0))
                          (while (> width 0.6)
+                           (ros::spin-once)
+                           ;; (ros::ros-info "is-cancelled:~A width:~A" is-cancelled width)
                            (if is-cancelled
-                               (return-from :set-shoulder-width nil)
-                               (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data))))
+                               (progn
+                                 (ros::ros-info "progn" )
+                                 (return-from :set-shoulder-width nil))
+                               ;; (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data))))
+                               (setq width 1.0)))
                          (setq shoulder-width (* width 1.5))
+ threa                        (ros::ros-info "end")
                          ;; (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
                          t))
 
@@ -41,13 +48,14 @@
                      (return-from :set-target-arm t))
                    (setq pub-bbox nil)
                    (setq fp nil)
-                   (send *ri* :speak-jp "手を見せてください" :wait t)
+                   ;; (send *ri* :speak-jp "手を見せてください" :wait t)
                    (while (null hand-coords)
+                     (ros::spin-once)                     
                      (if is-cancelled
                          (retuen-from :set-target-arm nil)
                          (setq hand-coords (hand-pose-subscriber))))
                    (give-hand-pose hand-coords)
-                   (send *ri* :speak-en "set target-arm" :wait t)
+                   ;; (send *ri* :speak-en "set target-arm" :wait t)
                    t)
 
   (:publish-boundingbox ()
@@ -64,7 +72,7 @@
                             (send bbox_req :position (float-vector -0.2 (- -0.5 (/ width 2)) 0.0)))
                         (send bbox_req :dimention (float-vector 0.6 width 2.0))
                         (setq bbox_res (ros::service-call "/boundingbox_publisher/set_param" bbox_req))
-                        (send *ri* :speak-en "published bounding box" :wait t)
+                        ;; (send *ri* :speak-en "published bounding box" :wait t)
                         (setq pub-bbox t)
                         t)
 
@@ -78,7 +86,8 @@
                         (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[-0.5,0.5],[-0.5,~A], [0.1,~A], [0.1,0.5], [0.34,0.35],[0.4,0],[0.34,-0.35]]" (+ 0.5 width) (+ 0.5 width)))
                         (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35],[0.1,-0.5],[0.1,~A],[-0.5,~A],[-0.5,-0.5]]" (- -0.5 width) (- -0.5 width))))    
                     (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string footprint)
-                    (send *ri* :speak-en "changed footprint" :wait t))
+                    ;; (send *ri* :speak-en "changed footprint" :wait t)
+                    )
 
   (:reset-footprint()
                    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]")
@@ -93,32 +102,34 @@
   
   (:cancel-cb (msg)
               (setq is-cancelled t)
-              (send *ri* :cancel-angle-vector))
+              (ros::ros-info "cancel ~A" is-cancelled)
+              ;; (send *ri* :cancel-angle-vector))
+              )
   
   (:req-cb
    (msg)
    (let ((request (send msg :request))
          (res-msg (instance std_msgs::string :init)))
-     (setq is-cancelled nil)
      (case request
        (0
         (when (send self :reset)
           (send res-msg :data "reset")))
        (1
-        (when (send self :set-shoulder-width)
-          (send res-msg :data "set shoulder-width")))
-       (2
-        (when (send self :set-target-arm)
-          (send res-msg :data "set target-arm")))
-       (3
-        (when (send self :publish-boundingbox)
-          (send res-msg :data "published boundingbox")))
-       (4
-        (when (send self :resize-footprint)
-          (send res-msg :data "resized footprint"))))
-          
-     (ros::publish "/init/result" res-msg)
-     (setq is-cancelled nil))))
+        (setq res (send self :set-shoulder-width))
+        (if res
+            (send res-msg :data "set shoulder-width")
+            (send res-msg :data "set shoulder-width cancelled")))
+       ;; (2
+       ;;  (when (send self :set-target-arm)
+       ;;    (send res-msg :data "set target-arm")))
+       ;; (3
+       ;;  (when (send self :publish-boundingbox)
+       ;;    (send res-msg :data "published boundingbox")))
+       ;; (4
+       ;;  (when (send self :resize-footprint)
+       ;;    (send res-msg :data "resized footprint"))))
+)          
+     (ros::publish "/init/result" res-msg))))
   
 (setq is (instance init-server :init))
 (ros::rate 10)
