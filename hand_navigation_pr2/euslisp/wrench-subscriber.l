@@ -13,11 +13,12 @@
 
 (defmethod wrench-subscriber
   (:init ()
+   (ros::advertise "/grasped" std_msgs::bool 1)
    (ros::subscribe "/left_endeffector/wrench_transformed" geometry_msgs::WrenchStamped #'send self :left-cb)
    (ros::subscribe "/right_endeffector/wrench_transformed" geometry_msgs::WrenchStamped #'send self :right-cb)
    (ros::subscribe "/joint_states" sensor_msgs::Jointstate #'send self :joint-cb)
-   (setq x-list nil)
-   (setq y-list nil)
+   (setq x-list (list 0))
+   (setq y-list (list 0))
    (setq count 0)
    self)
 
@@ -54,9 +55,15 @@
   (:run ()
    (when (ros::has-param "/target_arm")
      (setq arm (ros::get-param "/target_arm"))
-     (if (> count 20)
-         (ros::set-param "/grasped" nil)
-         (ros::set-param "/grasped" t))
+     (setq msg (instance std_msgs::bool :init))
+     (if (> count 40)
+         (progn
+           (ros::set-param "/grasped" nil)
+           (send msg :data nil))
+         (progn 
+           (ros::set-param "/grasped" t)
+           (send msg :data t)))
+     (ros::publish "/grasped" msg)
      (cond
       ((and (string-equal arm "larm") (not (null l-force)) (not (null l-shoulder-pan)))
        (progn
@@ -96,7 +103,7 @@
               (when (< tmp-x -15)
                 (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
 
-     (if (< (abs (- (last x-list) tmp-x)) 5)
+     (if (< (abs (- (car (last x-list)) tmp-x)) 0.1)
          (setq count (+ count 1))
          (setq count 0))
 

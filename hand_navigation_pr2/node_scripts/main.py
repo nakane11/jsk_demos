@@ -32,7 +32,7 @@ class HandNavigation():
         self.voice_sub = rospy.Subscriber('/Tablet/voice', SpeechRecognitionCandidates, self.voice_cb)
         self.go_sub = rospy.Subscriber('/go/result', String, self.result_cb)
         self.init_sub = rospy.Subscriber('/init/result', String, self.result_cb)
-        self.wrench_sub = rospy.Subscriber('', Bool, self.wrench_cb)
+        self.wrench_sub = rospy.Subscriber('/grasped', Bool, self.wrench_cb)
 
     def reset_params(self):
         self.is_wait_for_reply = False
