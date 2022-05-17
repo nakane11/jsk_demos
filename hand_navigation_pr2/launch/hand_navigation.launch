@@ -73,8 +73,11 @@
     <remap from="~output" to="/navigation/cmd_vel_filtered" />
   </node>
 
-  <!-- <node pkg="roseus" type="roseus" name="give_hand_init" output="screen" -->
-  <!--       args="$(find hand_navigation_pr2)/euslisp/init.l"  /> -->
+  <node pkg="roseus" type="roseus" name="give_hand_init" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/init.l"  />
+
+  <node pkg="roseus" type="roseus" name="go" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/go.l"  />
 
   <!-- <group ns="filter_base_laser_scan" > -->
   <!--   <node name="attention_clipper" -->
