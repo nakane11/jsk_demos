@@ -9,7 +9,7 @@
   (expt (+ (expt (send force :x) 2) (expt (send force :y) 2) (expt (send force :z) 2)) 0.5))
   
 (defclass wrench-subscriber
-  :slots (arm l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count))
+  :slots (arm l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count move-x move-y))
 
 (defmethod wrench-subscriber
   (:init ()
@@ -52,6 +52,21 @@
   (:rad-to-vel (rad)
                (* 0.35 (tan (/ (- rad (/ pi 4)) 1.1))))
 
+  (:look-at-hand
+   (arm)
+   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
+   (setq end-pos (send *pr2* arm :end-coords :worldpos))
+   (setq wrench-pos (float-vector (+ (elt end-pos 0) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2)))) tmp-x))
+                                  (+ (elt end-pos 1) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2)))) tmp-y))
+                                  1400))
+   ;; (setq wrench-pos (float-vector (+ (elt end-pos 0) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-x))
+   ;;                                (+ (elt end-pos 1) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-y))
+   ;;                                (+ (elt end-pos 2) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-z))))
+                                  
+   
+   (send *pr2* :head :look-at wrench-pos)
+   (send *ri* :angle-vector (send *pr2* :angle-vector) 900))
+       
   (:run ()
    (when (ros::has-param "/target_arm")
      (setq arm (ros::get-param "/target_arm"))
@@ -86,22 +101,30 @@
 
      (ros::ros-info "x: ~A  y: ~A z: ~A" tmp-x tmp-y tmp-z)
 
+     (setq move-x (send self :check :x))
+     (setq move-y (send self :check :y))
+     
      (block send-cmd-vel
             (unless (null rotate)
               (send *ri* :send-cmd-vel-raw 0 0 rotate)
               (return-from send-cmd-vel))
-            
-            (when (send self :check :y)
+
+       (if (string-equal arm "larm")
+           (send self :look-at-hand :larm)
+           (send self :look-at-hand :rarm)))
+       
+            (when move-y
               (when (> tmp-y 10)
                 (send *ri* :send-cmd-vel-raw 0 (/ (log tmp-y) 8.0) 0))
               (when (< tmp-y -10)
                 (send *ri* :send-cmd-vel-raw 0 (- (/ (log (abs tmp-y)) 8.0)) 0)))
 
-            (when (send self :check :x)
+            (when move-x
               (when (> tmp-x 18)
                 (send *ri* :send-cmd-vel-raw (/ (log tmp-x) 6.0) 0 0))
               (when (< tmp-x -15)
-                (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
+                (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0)))
+            )
 
      (if (< (abs (- (car (last x-list)) tmp-x)) 0.1)
          (setq count (+ count 1))
