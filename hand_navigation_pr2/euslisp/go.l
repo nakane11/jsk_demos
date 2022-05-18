@@ -37,6 +37,7 @@
    (ros::advertise "/go/result" std_msgs::string 1)
    (ros::subscribe "/go/request" hand_navigation_pr2::GoRequest #'send self :req-cb)
    (ros::subscribe "/move_base/result" move_base_msgs::MoveBaseActionResult #'send self :move-base-cb)
+   (ros::ros-debug "[go] init end")
    self)
 
   (:move-base-cb (msg)
@@ -56,26 +57,26 @@
           (request (send msg :request)))
       (case request
         (0
-         ;; (send *ri* :go-stop)
+         (send *ri* :go-stop)
          (setq destination nil)
          (send result :data "move-base reset called"))
         (1
          (block b
            (cond ((string-equal (send msg :destination) "center")
                   (setq destination "/eng2/7f/room73B2-center")
-                  ;; (go-to-spot destination)
+                  (go-to-spot destination)
                   )
                  (t
                   (send result :data "cannot find destination")
                   (return-from b nil)))
            (send result :data "move-base started")))
         (2
-         ;; (send *ri* :go-stop)
+         (send *ri* :go-stop)
          (send result :data "move-base paused"))
         (3
          (if destination
              (progn
-               ;; (go-to-spot destination)
+               (go-to-spot destination)
                (send result :data "move-base started"))
              (send result :data "no destination"))))
 

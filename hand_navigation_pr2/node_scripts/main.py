@@ -32,11 +32,12 @@ class HandNavigation():
         self.init_cancel_pub = rospy.Publisher('/init/cancel', InitRequest, queue_size=1)
 
         self.voice_sub = rospy.Subscriber('/Tablet/voice', SpeechRecognitionCandidates, self.voice_cb)
-        print("init ended")
+
         self.go_sub = rospy.Subscriber('/go/result', String, self.result_cb)
         self.init_sub = rospy.Subscriber('/init/result', String, self.result_cb)
         self.wrench_sub = rospy.Subscriber('/grasped', Bool, self.wrench_cb)
-    
+        rospy.loginfo("[main] init ended")
+        
     def reset_params(self):
         self.is_wait_for_reply = False
         self.is_wait_for_grasp = False
@@ -44,22 +45,27 @@ class HandNavigation():
         self.navigation = False
         self.inturrupt = False
         self.is_grasped = False
+        self.nav_requested = False
         self.destination = None
+        rospy.loginfo("[main] reset params ended")        
 
     def voice_cb(self, msg):
+        rospy.loginfo("[main] voice_cb get {}".format(msg.transcript[0]))        
         self.voice_q.put(msg.transcript[0])
         
     def result_cb(self, msg):
+        rospy.loginfo("[main] result_cb get {}".format(msg.data))                
         self.result_q.put(msg.data)
 
     def wrench_cb(self, msg):
+        rospy.loginfo("[main] wrench_cb get {}".format(msg.data))                
         self.is_grasped = msg.data
         
 
     def voice_loop(self):
         while not rospy.is_shutdown():
             text = self.voice_q.get()
-            print(text)
+            rospy.loginfo("[main] pull {} from voice_q".format(text))                    
             if text == "リセット":
                 self.init_cancel_pub.publish(InitRequest())
                 self.init_pub.publish(InitRequest(request = 0))
@@ -78,7 +84,7 @@ class HandNavigation():
                     self.inturrupt = True
                     self.is_wait_for_reply = False
                 else:
-                    print("もう一度")
+                    rospy.loginfo("もう一度")
 
             elif self.is_wait_for_grasp:
                 if text == "キャンセル":
@@ -93,14 +99,15 @@ class HandNavigation():
                     self.inturrupt = True
                     self.is_wait_for_destination = False
                 else:
-                    print("もう一度")
+                    rospy.loginfo("もう一度")
 
             elif self.navigation:
                 if text == "速い":
                     goal = VelocityFilterGoal(calculation = 2, rate = 0.2)
                     self.velocity_client.send_goal(goal)
                     res = self.velocity_client.get_result()
-                    #すみません　変更しました
+                    rospy.loginfo("current speed:{}".format(res.speed))
+                    #変更しました
 #                    res.speed
                 elif text == "遅い":
                     goal = VelocityFilterGoal(calculation = 1, rate = 0.2)
@@ -110,8 +117,7 @@ class HandNavigation():
                     self.go_pub.publish(GoRequest(request = 2))
                     self.navigation = False
                 else:
-                    print("else")
-                        
+                    rospy.loginfo("else")
 
             else:
                 if text == "進んで":
@@ -144,7 +150,7 @@ class HandNavigation():
                     self.init_cancel_pub.publish(InitRequest())
 
                 else:
-                    print("わからない")
+                    rospy.loginfo("わからない")
                     
             self.voice_q.task_done()
 
@@ -152,6 +158,14 @@ class HandNavigation():
         while not rospy.is_shutdown():
             self.voice_q.join()
             result = self.result_q.get()
+            rospy.loginfo("[main] pull {} from result_q".format(result))
+            if result=="test":
+                if self.wait_for_reply():
+                    if self.reply:
+                        rospy.loginfo("get reply")
+                        if self.wait_for_grasp():
+                            self.navigation = True
+                            self.go_pub.publish(GoRequest(request = 1, destination = self.destination))
             
             if result == "set shoulder-width":
                 self.init_pub.publish(InitRequest(request = 2))
@@ -190,43 +204,53 @@ class HandNavigation():
             self.result_q.task_done()
     
     def wait_for_reply(self):
+        print("[main] wait_for_reply start")
         self.inturrupt = False
         self.is_wait_for_reply = True
         while self.is_wait_for_reply:
             if self.inturrupt:
                 self.inturrupt = False
+                rospy.loginfo("[main] wait_for_reply inturrupt")                
                 return False
             else:
                 continue
+        print("[main] wait_for_reply end")            
         return True
 
     def wait_for_grasp(self):
+        rospy.loginfo("[main] wait_for_grasp start")
         #つかまってください
         self.inturrupt = False
         self.is_wait_for_grasp = True
         while not self.is_grasped:
             if self.inturrupt:
                 self.inturrupt = False
+                rospy.loginfo("[main] wait_for_grasp inturrupt")
                 return False
             else:
                 continue
+        rospy.loginfo("[main] wait_for_grasp end")        
         return True
 
     def wait_for_destination(self):
+        rospy.loginfo("[main] wait_for_destination start")
         #どこへ行きますか
         self.inturrupt = False
         self.is_wait_for_destination = True
         while self.is_wait_for_destination:
             if self.inturrupt:
                 self.inturrupt = False
+                rospy.loginfo("[main] wait_for_destination inturrupt")                
                 return False
             else:
                 continue
+        rospy.loginfo("[main] wait_for_destination end")        
         return True
                                         
     def run(self):
         self.voice_thread.start()
         self.result_thread.start()
+        rospy.loginfo("[main] threads start")        
         
 if __name__ == '__main__':
     rospy.init_node('hand_navigation')
