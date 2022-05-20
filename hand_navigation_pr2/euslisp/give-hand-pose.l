@@ -15,17 +15,22 @@
   (if (string-equal arm "larm")
       (progn
         (pr2-tuckarm-pose :larm :inside :single)
-        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(+ (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi)))
+        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(+ (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))
+        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) -135) 1000) (/(+ (elt (send hand-coords :pos) 1) 679) 1000) (rad2deg pi)))
       (progn
         (pr2-tuckarm-pose :rarm :inside :single)
-        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))))
+        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))
+        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 679) 1000) (rad2deg pi))))
+
   (send *ri* :wait-interpolation)
   (if (string-equal arm "larm")
       (progn
-        (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector -400 600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
+        ;; (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector -400 600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
+        (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector 135 679 946)) :rotation-axis nil)        
         (send *pr2* :head :angle-vector #f(120.0 26.0)))
       (progn
-        (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
+        ;; (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
+        (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector 135 -679 946)) :rotation-axis nil)
         (send *pr2* :head :angle-vector #f(-120.0 26.0))))
 
   ;;(send *pr2* :head :look-at (send *pr2* arm :end-coords :worldpos))
