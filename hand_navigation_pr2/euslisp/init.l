@@ -32,17 +32,21 @@
                        (setq is-cancelled nil)
                        (when shoulder-width
                          (return-from :set-shoulder-width t))
-                       ;; (send *ri* :speak-en "stand in front of me" :wait t)
-                       (let ((width 100000.0))
-                         (while (> width 0.6)
-                           (ros::ros-info "shoulder")
-                           (ros::spin-once)
-                           (if is-cancelled
-                                 (return-from :set-shoulder-width nil)
-                               (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data))))
-                         (setq shoulder-width (* width 1.5))
-                         (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
-                         t))
+                       (send *ri* :speak-en "stand in front of me" :wait t)
+                       (setq width 0.7)
+                       (while (> width 0.6)
+                         (ros::ros-info "shoulder")
+                         (ros::spin-once)
+                         (if is-cancelled
+                             (progn
+                               (ros::ros-info "cancel")
+                               (return-from :set-shoulder-width nil))
+                             (setq width (send (one-shot-subscribe "/get_people_size/output" std_msgs::Float32) :data)))
+                         (ros::ros-info "~A" width)
+                         )
+                       (setq shoulder-width (* width 1.5))
+                       (send *ri* :speak-en (format nil "~Ameter" shoulder-width))
+                       t)
 
   (:set-target-arm ()
                    (setq is-cancelled nil)
@@ -58,6 +62,7 @@
                      (if is-cancelled
                          (return-from :set-target-arm nil)
                          (setq hand-coords (hand-pose-subscriber))))
+                   (ros::ros-info "give-hand-pose")
                    (give-hand-pose hand-coords)
                    (send *ri* :speak-en "set target-arm" :wait t)
                    t)
@@ -121,8 +126,11 @@
            (send res-msg :data "reset failed")))
        (1
         (setq res (send self :set-shoulder-width))
+        (ros::ros-info "return")
         (if res
-            (send res-msg :data "set shoulder-width")
+            (progn
+              (ros::ros-info "set")
+            (send res-msg :data "set shoulder-width"))
             (send res-msg :data "set shoulder-width cancelled")))
        (2
         (setq res (send self :set-target-arm))
@@ -138,8 +146,8 @@
         (setq res (send self :resize-footprint))
         (if res
             (send res-msg :data "resized footprint")
-            (send res-msg :data "resize footprint failed")))
-     (ros::publish "/init/result" res-msg)))))
+            (send res-msg :data "resize footprint failed"))))
+     (ros::publish "/init/result" res-msg))))
   
 (setq is (instance init-server :init))
 (ros::rate 10)
