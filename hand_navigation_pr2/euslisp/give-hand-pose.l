@@ -8,30 +8,32 @@
 
 (defun give-hand-pose (hand-coords)
   (send *pr2* :head :angle-vector #f(0.0 14.694))
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000 :head-controller)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
   (if (> (elt (send hand-coords :pos) 1) 0)
       (setq arm "larm")
       (setq arm "rarm"))
   (if (string-equal arm "larm")
       (progn
         (pr2-tuckarm-pose :larm :inside :single)
-        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(+ (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))
+        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(+ (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi)))
         (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) -135) 1000) (/(+ (elt (send hand-coords :pos) 1) 679) 1000) (rad2deg pi)))
       (progn
         (pr2-tuckarm-pose :rarm :inside :single)
-        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))
-        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 679) 1000) (rad2deg pi))))
+        ;; (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) 400) 1000) (/(- (elt (send hand-coords :pos) 1) 600) 1000) (rad2deg pi))))
+        (send *ri* :go-pos-unsafe (/(- (elt (send hand-coords :pos) 0) -135) 1000) (/(- (elt (send hand-coords :pos) 1) 679) 1000) (rad2deg pi))))
 
   (send *ri* :wait-interpolation)
   (if (string-equal arm "larm")
       (progn
         ;; (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector -400 600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
-        (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector 135 679 946)) :rotation-axis nil)        
-        (send *pr2* :head :angle-vector #f(120.0 26.0)))
+        ;; (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector 135 679 946)) :rotation-axis nil)
+        (send *pr2* :larm :angle-vector #f(44.3333 36.9321 9.03022 -121.342 -133.409 -92.8499 -19.1599))
+        (send *pr2* :head :angle-vector #f(77.0 23.0)))
       (progn
         ;; (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
-        (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector 135 -679 946)) :rotation-axis nil)
-        (send *pr2* :head :angle-vector #f(-120.0 26.0))))
+        ;; (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector 135 -679 946)) :rotation-axis nil)
+        (send *pr2* :rarm :angle-vector #f(-44.3333 36.9321 9.03022 -121.342 133.409 -92.8499 -19.1599))
+        (send *pr2* :head :angle-vector #f(-77.0 23.0))))
 
   ;;(send *pr2* :head :look-at (send *pr2* arm :end-coords :worldpos))
 
