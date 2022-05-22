@@ -66,6 +66,10 @@
                   (setq destination "/eng2/7f/room73B2-center")
                   (go-to-spot destination)
                   )
+                 ((string-equal (send msg :destination) "fridge")
+                  (setq destination "/eng2/7f/room73B2-fridge-front")
+                  (go-to-spot destination)
+                  )
                  (t
                   (send result :data "cannot find destination")
                   (return-from b nil)))
