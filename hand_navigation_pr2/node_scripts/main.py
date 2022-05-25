@@ -4,6 +4,7 @@ from speech_recognition_msgs.msg import SpeechRecognitionCandidates
 from hand_navigation_pr2.msg import InitRequest
 from hand_navigation_pr2.msg import VelocityFilterAction, VelocityFilterGoal
 from hand_navigation_pr2.msg import GoRequest
+from hand_navigation_pr2.msg import GraspAction, GraspGoal
 from std_msgs.msg import String, Bool
 
 import rospy
@@ -27,6 +28,9 @@ class HandNavigation():
 
         self.velocity_client = actionlib.SimpleActionClient('velocity_filter', VelocityFilterAction)
         self.velocity_client.wait_for_server()
+        self.grasp_client = actionlib.SimpleActionClient('grasp', GraspAction)
+        self.grasp_client.wait_for_server()
+
 
         self.go_pub = rospy.Publisher('/go/request', GoRequest, queue_size=1)
         self.init_pub = rospy.Publisher('/init/request', InitRequest, queue_size=1)
@@ -36,7 +40,6 @@ class HandNavigation():
 
         self.go_sub = rospy.Subscriber('/go/result', String, self.result_cb)
         self.init_sub = rospy.Subscriber('/init/result', String, self.result_cb)
-        self.wrench_sub = rospy.Subscriber('/grasped', Bool, self.wrench_cb)
         rospy.loginfo("[main] init ended")
         
     def reset_params(self):
@@ -56,12 +59,7 @@ class HandNavigation():
         
     def result_cb(self, msg):
         rospy.loginfo("[main] result_cb get {}".format(msg.data))                
-        self.result_q.put(msg.data)
-
-    def wrench_cb(self, msg):
-        rospy.loginfo("[main] wrench_cb get {}".format(msg.data))                
-        self.is_grasped = msg.data
-        
+        self.result_q.put(msg.data)        
 
     def voice_loop(self):
         while not rospy.is_shutdown():
@@ -86,7 +84,7 @@ class HandNavigation():
                     self.is_wait_for_reply = False
                     self.sound_client.say('中止しました')  
                 else:
-                    rospy.loginfo("もう一度")
+                    self.sound_client.say("はいかいいえで答えてください")
 
             elif self.is_wait_for_grasp:
                 if text == "キャンセル":
@@ -107,7 +105,7 @@ class HandNavigation():
                     self.is_wait_for_destination = False
                     self.sound_client.say('中止しました')                    
                 else:
-                    rospy.loginfo("もう一度")
+                    self.sound_client.say("fetch")
 
             elif self.navigation:
                 if text == "速い":
@@ -159,7 +157,7 @@ class HandNavigation():
                     self.sound_client.say('中止しました')                                        
 
                 else:
-                    rospy.loginfo("わからない")
+                    self.sound_client.say("わかりません")
                     
             self.voice_q.task_done()
 
@@ -239,7 +237,8 @@ class HandNavigation():
                 rospy.loginfo("[main] wait_for_grasp inturrupt")
                 return False
             else:
-                continue
+                self.grasp_client.send_goal(GraspGoal())
+                self.is_grasped = self.grasp_client.get_result().grasped
         rospy.loginfo("[main] wait_for_grasp end")        
         return True
 
