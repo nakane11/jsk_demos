@@ -9,7 +9,7 @@
   (expt (+ (expt (send force :x) 2) (expt (send force :y) 2) (expt (send force :z) 2)) 0.5))
   
 (defclass wrench-subscriber
-  :slots (arm l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count move-x move-y))
+  :slots (arm tmp-x tmp-y tmp-z l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count move-x move-y))
 
 (defmethod wrench-subscriber
   (:init ()
@@ -65,7 +65,7 @@
                                   
    
    (send *pr2* :head :look-at wrench-pos)
-   (send *ri* :angle-vector (send *pr2* :angle-vector) 900))
+   (send *ri* :angle-vector-raw (send *pr2* :angle-vector) 500 :head-controller))
        
   (:run ()
    (when (ros::has-param "/target_arm")
@@ -91,8 +91,8 @@
 
       ((and (string-equal arm "rarm") (not (null r-force)) (not (null r-shoulder-pan)))
        (progn
-         (if ((or (< r-shoulder-pan -1.37) (> r-shoulder-pan 0.2)))
-             (setq rotate (- (send self :rad-to-vel (abs r-shoulder-pan))))
+         (if (or (< r-shoulder-pan -1.37) (> r-shoulder-pan -0.2))
+             (setq rotate (send self :rad-to-vel r-shoulder-pan))
            (setq rotate nil))
          (setq tmp-x (send r-force :x))
          (setq tmp-y (send r-force :y))
@@ -109,10 +109,10 @@
               (send *ri* :send-cmd-vel-raw 0 0 rotate)
               (return-from send-cmd-vel))
 
-       (if (string-equal arm "larm")
-           (send self :look-at-hand :larm)
-           (send self :look-at-hand :rarm)))
-       
+            ;; (if (string-equal arm "larm")
+            ;;     (send self :look-at-hand :larm)
+            ;;   (send self :look-at-hand :rarm))
+            
             (when move-y
               (when (> tmp-y 10)
                 (send *ri* :send-cmd-vel-raw 0 (/ (log tmp-y) 8.0) 0))
@@ -123,12 +123,11 @@
               (when (> tmp-x 18)
                 (send *ri* :send-cmd-vel-raw (/ (log tmp-x) 6.0) 0 0))
               (when (< tmp-x -15)
-                (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0)))
-            )
+                (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
 
      (if (< (abs (- (car (last x-list)) tmp-x)) 0.1)
          (setq count (+ count 1))
-         (setq count 0))
+       (setq count 0))
 
      (when (> (length x-list) 10)
        (setq x-list (cdr x-list)))
@@ -148,8 +147,8 @@
 (setq *ws* (instance wrench-subscriber :init))
 (ros::rate 50)
 (do-until-key
-  (ros::spin-once)
-  (send *ws* :run)
-  (ros::sleep))
-         
-   
+ (ros::spin-once)
+ (send *ws* :run)
+ (ros::sleep))
+
+

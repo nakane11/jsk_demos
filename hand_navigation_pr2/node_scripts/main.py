@@ -10,12 +10,13 @@ import rospy
 import actionlib
 import queue
 import threading
+from sound_play.libsoundplay import SoundClient
 
 class HandNavigation():
 
     def __init__(self):
         self.reset_params()
-        
+        self.sound_client = SoundClient(blocking=True, sound_action='robotsound_jp', sound_topic='robotsound_jp')
         self.voice_q = queue.Queue()
         self.result_q = queue.Queue()
 
@@ -83,6 +84,7 @@ class HandNavigation():
                 elif text == "キャンセル":
                     self.inturrupt = True
                     self.is_wait_for_reply = False
+                    self.sound_client.say('中止しました')  
                 else:
                     rospy.loginfo("もう一度")
 
@@ -90,14 +92,20 @@ class HandNavigation():
                 if text == "キャンセル":
                     self.inturrupt = True
                     self.is_wait_for_grasp = False
+                    self.sound_client.say('中止しました')                                
 
             elif self.is_wait_for_destination:
                 if text == "センター":
                     self.destination = "center"
                     self.is_wait_for_destination = False
+                if text == "冷蔵庫":
+                    self.destination = "fridge"
+                    self.is_wait_for_destination = False
+                    
                 elif text == "キャンセル":
                     self.inturrupt = True
                     self.is_wait_for_destination = False
+                    self.sound_client.say('中止しました')                    
                 else:
                     rospy.loginfo("もう一度")
 
@@ -107,12 +115,12 @@ class HandNavigation():
                     self.velocity_client.send_goal(goal)
                     res = self.velocity_client.get_result()
                     rospy.loginfo("current speed:{}".format(res.speed))
-                    #変更しました
-#                    res.speed
+                    self.sound_client.say('速度を{}に変更しました'.format(res.speed))
                 elif text == "遅い":
                     goal = VelocityFilterGoal(calculation = 1, rate = 0.2)
                     self.velocity_client.send_goal(goal)
                     res = self.velocity_client.get_result()
+                    self.sound_client.say('速度を{}に変更しました'.format(res.speed))
                 elif text == "止まって":
                     self.go_pub.publish(GoRequest(request = 2))
                     self.navigation = False
@@ -148,6 +156,7 @@ class HandNavigation():
                 
                 elif text == "キャンセル":
                     self.init_cancel_pub.publish(InitRequest())
+                    self.sound_client.say('中止しました')                                        
 
                 else:
                     rospy.loginfo("わからない")
@@ -176,12 +185,12 @@ class HandNavigation():
             elif result == "resized footprint":
                 if self.destination:
                     if self.nav_requested:
-                        #~へ行きます
+                        self.sound_client.say('{}へ行きます'.format(self.destination))
                         if self.wait_for_grasp():
                             self.navigation = True
                             self.go_pub.publish(GoRequest(request = 1, destination = self.destination))
                     else:
-                        #~へ行きますか
+                        self.sound_client.say('{}へ行きますか'.format(self.destination))
                         if self.wait_for_reply():
                             if self.reply:
                                 if self.wait_for_grasp():
@@ -189,18 +198,20 @@ class HandNavigation():
                                     self.go_pub.publish(GoRequest(request = 1, destination = self.destination))
                 elif self.nav_requested:
                     if self.wait_for_destination():
-                        #~へ行きます
+                        self.sound_client.say('{}へ行きます'.format(self.destination))          
                         if self.wait_for_grasp():
                             self.navigation = True
                             self.go_pub.publish(GoRequest(request = 1, destination = self.destination))
                                       
 
             elif result == "move-base succeeded":
+                self.sound_client.say('到着しました')          
                 print("到着しました")
                 self.navigation = False
             elif result == "move-base failed":
+                self.sound_client.say('失敗しました')
                 print("失敗しました")
-                                      
+                
             self.result_q.task_done()
     
     def wait_for_reply(self):
@@ -219,7 +230,7 @@ class HandNavigation():
 
     def wait_for_grasp(self):
         rospy.loginfo("[main] wait_for_grasp start")
-        #つかまってください
+        self.sound_client.say('つかまってください')                        
         self.inturrupt = False
         self.is_wait_for_grasp = True
         while not self.is_grasped:
@@ -234,7 +245,7 @@ class HandNavigation():
 
     def wait_for_destination(self):
         rospy.loginfo("[main] wait_for_destination start")
-        #どこへ行きますか
+        self.sound_client.say('どこへ行きますか')                        
         self.inturrupt = False
         self.is_wait_for_destination = True
         while self.is_wait_for_destination:

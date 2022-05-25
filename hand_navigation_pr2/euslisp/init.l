@@ -32,6 +32,8 @@
                        (setq is-cancelled nil)
                        (when shoulder-width
                          (return-from :set-shoulder-width t))
+                       (send *pr2* :head :angle-vector #f(0.0 14.694))
+                       (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
                        (send *ri* :speak-en "stand in front of me" :wait t)
                        (setq width 0.7)
                        (while (> width 0.6)
@@ -56,6 +58,9 @@
                    (setq pub-bbox nil)
                    (setq fp nil)
                    (setq hand-coords nil)
+                   (send *pr2* :head :angle-vector #f(0.0 14.694))
+                   (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
+                   ;; (send *ri* :wait-interpolation)
                    (send *ri* :speak-en "show me your hand":wait t)
                    (while (null hand-coords)
                      (ros::spin-once)                     
