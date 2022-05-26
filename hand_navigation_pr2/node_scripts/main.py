@@ -5,6 +5,7 @@ from hand_navigation_pr2.msg import InitRequest
 from hand_navigation_pr2.msg import VelocityFilterAction, VelocityFilterGoal
 from hand_navigation_pr2.msg import GoRequest
 from hand_navigation_pr2.msg import GraspAction, GraspGoal
+from hand_navigation_pr2.msg import HandPoseAction, HandPoseGoal
 from std_msgs.msg import String, Bool
 
 import rospy
@@ -17,6 +18,7 @@ class HandNavigation():
 
     def __init__(self):
         self.reset_params()
+        self.robot_hand = rospy.get_param('~robot_hand', True)
         self.sound_client = SoundClient(blocking=True, sound_action='robotsound_jp', sound_topic='robotsound_jp')
         self.voice_q = queue.Queue()
         self.result_q = queue.Queue()
@@ -30,7 +32,8 @@ class HandNavigation():
         self.velocity_client.wait_for_server()
         self.grasp_client = actionlib.SimpleActionClient('grasp', GraspAction)
         self.grasp_client.wait_for_server()
-
+        self.hand_pose_client = actionlib.SimpleActionClient('hand_pose', HandPoseAction)
+        self.hand_pose_client.wait_for_server()
 
         self.go_pub = rospy.Publisher('/go/request', GoRequest, queue_size=1)
         self.init_pub = rospy.Publisher('/init/request', InitRequest, queue_size=1)
@@ -40,6 +43,7 @@ class HandNavigation():
 
         self.go_sub = rospy.Subscriber('/go/result', String, self.result_cb)
         self.init_sub = rospy.Subscriber('/init/result', String, self.result_cb)
+        self.hand_pose_client.send_goal(HandPoseGoal(pose = 0))
         rospy.loginfo("[main] init ended")
         
     def reset_params(self):
@@ -228,17 +232,21 @@ class HandNavigation():
 
     def wait_for_grasp(self):
         rospy.loginfo("[main] wait_for_grasp start")
-        self.sound_client.say('つかまってください')                        
-        self.inturrupt = False
-        self.is_wait_for_grasp = True
-        while not self.is_grasped:
-            if self.inturrupt:
-                self.inturrupt = False
-                rospy.loginfo("[main] wait_for_grasp inturrupt")
-                return False
-            else:
-                self.grasp_client.send_goal(GraspGoal())
-                self.is_grasped = self.grasp_client.get_result().grasped
+        if self.robot_hand:
+            self.hand_pose_client.send_goal(HandPoseGoal(pose = 1))
+            self.hand_pose_client.wait_for_result()
+        else:
+            self.sound_client.say('つかまってください')                        
+            self.inturrupt = False
+            self.is_wait_for_grasp = True
+            while not self.is_grasped:
+                if self.inturrupt:
+                    self.inturrupt = False
+                    rospy.loginfo("[main] wait_for_grasp inturrupt")
+                    return False
+                else:
+                    self.grasp_client.send_goal(GraspGoal())
+                    self.is_grasped = self.grasp_client.get_result().grasped
         rospy.loginfo("[main] wait_for_grasp end")        
         return True
 
