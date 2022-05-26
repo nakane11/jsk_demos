@@ -33,6 +33,7 @@ class ServoClient:
         return ret.tolist()
 
 def cb(goal):
+    print(goal.angle_array)
     client.send_angle(goal.angle_array)
     server.set_succeeded(ServoResult())
     

@@ -68,6 +68,7 @@ add_action_files(
   VelocityFilter.action
   Grasp.action
   Servo.action
+  HandPose.action
 )
 
 ## Generate added messages and services with any dependencies listed here
