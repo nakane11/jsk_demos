@@ -9,7 +9,7 @@ from hand_navigation_pr2.msg import ServoAction, ServoResult
 class ServoClient:
     def __init__(self, min_angle, rate):
         self.min_angle = min_angle
-        self.array = np.array([90, 89, 87, 90, 0])
+        self.array = np.array([108, 96, 83, 78, 0])
         self.pub = rospy.Publisher("servo_angle_raw", Float32MultiArray, queue_size = 1)
         self.rate = rospy.Rate(rate)
 
@@ -35,8 +35,8 @@ class ServoClient:
 def cb(goal):
     print(goal.angle_array)
     client.send_angle(goal.angle_array)
-    server.set_succeeded(ServoResult())
-    
+    server.set_succeeded(ServoResult()) 
+   
 rospy.init_node("servo_interpolation")
 client = ServoClient(2, 40)
 server = actionlib.SimpleActionServer("servo_interpolation", ServoAction, execute_cb=cb)
