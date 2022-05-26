@@ -7,7 +7,6 @@
 
 (defmethod grasp-detector
     (:execute-cb (server goal)
-     (unix::sleep 3)
      (let (arm (msg (send server :result :result nil)) (dist-list nil) (count 0))
        (unless (ros::has-param "/target_arm")
          (send server :set-succeeded msg)
@@ -25,8 +24,8 @@
          (let ((hand-poses (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray)) hand-pose finger-pose stamp base-to-camera-coords camera-to-hand-coords human-hand-coords robot-hand-coords (dist nil))
            (when (> (length (send hand-poses :poses)) 0)
              (setq hand-pose (car (send hand-poses :poses)))
-             (when (> (length (send hand-pose :poses)) 0)
-               (setq finger-pose (car (send hand-pose :poses)))
+             (when (> (length (send hand-pose :poses)) 0) 
+              (setq finger-pose (car (send hand-pose :poses)))
                (setq stamp (send hand-poses :header :stamp))
                (setq base-to-camera-coords (send *tfl* :lookup-transform "/base_footprint" (send hand-poses :header :frame_id) stamp))
                (when base-to-camera-coords
@@ -38,9 +37,9 @@
            (push dist dist-list)
            (ros::ros-info "~A" dist)))
        (dolist (dist dist-list)
-         (unless (or (null dist) (> dist 130))
+         (unless (or (null dist) (> dist 160))
            (incf count)))
-       (if (> count 1)
+       (if (> count 2)
            (progn
              (send msg :result :grasped t)
              (send *ri* :speak-en "grasp")) 
