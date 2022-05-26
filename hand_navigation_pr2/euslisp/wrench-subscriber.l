@@ -4,22 +4,17 @@
 
 (ros::roseus "wrench_subscriber")
 (pr2-init nil)
-
-(defun force-vector-to-norm(force)
-  (expt (+ (expt (send force :x) 2) (expt (send force :y) 2) (expt (send force :z) 2)) 0.5))
   
 (defclass wrench-subscriber
-  :slots (arm tmp-x tmp-y tmp-z l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan count move-x move-y))
+  :slots (arm tmp-x tmp-y tmp-z l-force r-force x-list y-list l-shoulder-pan r-shoulder-pan move-x move-y))
 
 (defmethod wrench-subscriber
   (:init ()
-   (ros::advertise "/grasped" std_msgs::bool 1)
    (ros::subscribe "/left_endeffector/wrench_transformed" geometry_msgs::WrenchStamped #'send self :left-cb)
    (ros::subscribe "/right_endeffector/wrench_transformed" geometry_msgs::WrenchStamped #'send self :right-cb)
    (ros::subscribe "/joint_states" sensor_msgs::Jointstate #'send self :joint-cb)
    (setq x-list (list 0))
    (setq y-list (list 0))
-   (setq count 0)
    self)
 
   (:left-cb
@@ -52,6 +47,16 @@
   (:rad-to-vel (rad)
                (* 0.35 (tan (/ (- rad (/ pi 4)) 1.1))))
 
+  ;; (:look-at-hand(arm)
+  ;;  (let ((pan (rad2deg (atan tmp-y tmp-x))) (tilt (+ 25 (* 2 tmp-z))))
+  ;;    (if (> pan 0)
+  ;;        (setq pan (min pan 168))
+  ;;        (setq pan (max pan -168)))
+  ;;    (if (> tilt 0)
+  ;;        (setq tilt (min tilt 60))
+  ;;        (setq tilt (max tilt -30)))
+  ;;    (send *pr2* :head :angle-vector (float-vector pan tilt)))
+ 
   (:look-at-hand
    (arm)
    (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
@@ -59,26 +64,13 @@
    (setq wrench-pos (float-vector (+ (elt end-pos 0) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2)))) tmp-x))
                                   (+ (elt end-pos 1) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2)))) tmp-y))
                                   1400))
-   ;; (setq wrench-pos (float-vector (+ (elt end-pos 0) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-x))
-   ;;                                (+ (elt end-pos 1) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-y))
-   ;;                                (+ (elt end-pos 2) (* (/ 500 (sqrt (+ (expt tmp-x 2) (expt tmp-y 2) (expt tmp-z 2)))) tmp-z))))
-                                  
-   
    (send *pr2* :head :look-at wrench-pos)
-   (send *ri* :angle-vector-raw (send *pr2* :angle-vector) 500 :head-controller))
+   (send *ri* :angle-vector (send *pr2* :angle-vector) 500 :head-controller))
        
   (:run ()
    (when (ros::has-param "/target_arm")
      (setq arm (ros::get-param "/target_arm"))
-     (setq msg (instance std_msgs::bool :init))
-     (if (> count 40)
-         (progn
-           (ros::set-param "/grasped" nil)
-           (send msg :data nil))
-         (progn 
-           (ros::set-param "/grasped" t)
-           (send msg :data t)))
-     (ros::publish "/grasped" msg)
+
      (cond
       ((and (string-equal arm "larm") (not (null l-force)) (not (null l-shoulder-pan)))
        (progn
@@ -103,15 +95,15 @@
 
      (setq move-x (send self :check :x))
      (setq move-y (send self :check :y))
+
+     ;; (if (string-equal arm "larm")
+     ;;     (send self :look-at-hand :larm)
+     ;;     (send self :look-at-hand :rarm))
      
      (block send-cmd-vel
             (unless (null rotate)
               (send *ri* :send-cmd-vel-raw 0 0 rotate)
               (return-from send-cmd-vel))
-
-            ;; (if (string-equal arm "larm")
-            ;;     (send self :look-at-hand :larm)
-            ;;   (send self :look-at-hand :rarm))
             
             (when move-y
               (when (> tmp-y 10)
@@ -125,10 +117,6 @@
               (when (< tmp-x -15)
                 (send *ri* :send-cmd-vel-raw (- (/ (log (abs tmp-x)) 6.0)) 0 0))))
 
-     (if (< (abs (- (car (last x-list)) tmp-x)) 0.1)
-         (setq count (+ count 1))
-       (setq count 0))
-
      (when (> (length x-list) 10)
        (setq x-list (cdr x-list)))
      (setq x-list (append x-list (list tmp-x)))
@@ -137,13 +125,6 @@
        (setq y-list (cdr y-list)))
      (setq y-list (append y-list (list tmp-y))))))
 
-         
-     ;;     (setq norm (force-vector-to-norm l-force))
-     ;;     (ros::ros-info "arm:~A y-force:~A norm:~A~%" arm (send l-force :y) norm)
-     ;;     (if (> norm 6)
-     ;;         (ros::set-param "/hand_grasped" t)
-     ;;       (ros::set-param "/hand_grasped" nil))))
-     
 (setq *ws* (instance wrench-subscriber :init))
 (ros::rate 50)
 (do-until-key
