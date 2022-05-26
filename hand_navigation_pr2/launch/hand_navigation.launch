@@ -73,11 +73,24 @@
     <remap from="~output" to="/navigation/cmd_vel_filtered" />
   </node>
 
+  <node name="mux_overwrite"
+        pkg="hand_navigation_pr2" type="mux_selector_overwrite.py" />
+
   <node pkg="roseus" type="roseus" name="give_hand_init" output="screen"
         args="$(find hand_navigation_pr2)/euslisp/init.l"  />
 
   <node pkg="roseus" type="roseus" name="go" output="screen"
         args="$(find hand_navigation_pr2)/euslisp/go.l"  />
+
+  <node pkg="roseus" type="roseus" name="grasp_detector" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/grasp-detector.l"  />
+
+  <node pkg="roseus" type="roseus" name="hand_pose" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/hand-pose.l"  />
+
+  <node name="servo_interpolation"
+        pkg="hand_navigation_pr2" type="servo_interpolation.py" />
+
 
   <!-- <group ns="filter_base_laser_scan" > -->
   <!--   <node name="attention_clipper" -->
