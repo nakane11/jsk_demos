@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+
+import signal
+
 from std_msgs.msg import String
 from topic_tools.srv import MuxSelect, MuxAdd, MuxDelete
 import rospy
 
-
 class MuxOverwrite():
-
     def __init__(self):
         self.before = '/teleop/cmd_vel'
         self.target_topic = rospy.get_param('~target', '/navigation/cmd_vel')
@@ -18,16 +19,26 @@ class MuxOverwrite():
         self.sub = rospy.Subscriber('/vel_type_mux/selected', String, self.cb)
 
     def cb(self, msg):
-        if msg.data == self.target_topic and self.before != self.target_topic:
+        if msg.data == self.target_topic:
             self.select_client('/navigation/cmd_vel_filtered')
-        self.before = msg.data
+            self.before = self.target_topic
+        elif msg.data != '/navigation/cmd_vel_filtered':
+            self.before = msg.data
 
-    def hook(self):
+    def hook(self, signal=None, frame=None):
+        self.sub.unregister()
+        if self.before == self.target_topic:
+            self.select_client(self.target_topic)
         self.delete_client('/navigation/cmd_vel_filtered')
-    
-
+        rospy.signal_shutdown("finish")
+        
+    def run(self):
+        rate = rospy.Rate(10)
+        while not rospy.is_shutdown():
+            rate.sleep()
+                
 if __name__ == "__main__":
-    rospy.init_node('mux_selector_overwrite')
+    rospy.init_node('mux_selector_overwrite', disable_signals=True)
     mo = MuxOverwrite()
-    rospy.on_shutdown(mo.hook)
+    signal.signal(signal.SIGINT, mo.hook)
     rospy.spin()
