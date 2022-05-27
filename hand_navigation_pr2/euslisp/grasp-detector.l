@@ -7,6 +7,7 @@
 
 (defmethod grasp-detector
     (:execute-cb (server goal)
+     (ros::ros-info "start")
      (let (arm (msg (send server :result :result nil)) (dist-list nil) (count 0))
        (unless (ros::has-param "/target_arm")
          (send server :set-succeeded msg)
@@ -20,7 +21,7 @@
        (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
        (send *pr2* :head :look-at (send *pr2* arm :end-coords :worldpos))
        (send *ri* :angle-vector (send *pr2* :angle-vector) 500 :head-controller)
-       (dotimes (i 5)
+       (dotimes (i 4)
          (let ((hand-poses (one-shot-subscribe "/hand_pose_estimation_2d/output/pose" jsk_recognition_msgs::HandPoseArray)) hand-pose finger-pose stamp base-to-camera-coords camera-to-hand-coords human-hand-coords robot-hand-coords (dist nil))
            (when (> (length (send hand-poses :poses)) 0)
              (setq hand-pose (car (send hand-poses :poses)))
@@ -37,17 +38,19 @@
            (push dist dist-list)
            (ros::ros-info "~A" dist)))
        (dolist (dist dist-list)
-         (unless (or (null dist) (> dist 160))
+         (unless (or (null dist) (> dist 200))
            (incf count)))
-       (if (> count 2)
+       (if (> count 1)
            (progn
              (send msg :result :grasped t)
              (send *ri* :speak-en "grasp")) 
            (send msg :result :grasped nil))
        (send msg :result :result t)
        (send server :set-succeeded msg)))
+  
   (:init ()
-         (setq hand-list nil) 
+         (setq hand-list nil)
+         (ros::ros-info "init")
          (setq server (instance ros::simple-action-server :init
                                 "grasp" hand_navigation_pr2::GraspAction
                                 :execute-cb `(lambda-closure nil 0 0 (server goal)
