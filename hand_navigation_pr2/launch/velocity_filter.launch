@@ -1,0 +1,10 @@
+<launch>
+  <node name="velocity_filter"
+        pkg="hand_navigation_pr2" type="velocity_filter.py">
+    <remap from="~input" to="/navigation/cmd_vel" />
+    <remap from="~output" to="/navigation/cmd_vel_filtered" />
+  </node>
+
+  <node name="mux_overwrite"
+        pkg="hand_navigation_pr2" type="mux_selector_overwrite.py" />
+</launch>

@@ -1,0 +1,11 @@
+<launch>
+  <node pkg="roseus" type="roseus" name="hand_pose" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/hand-pose.l"  />
+
+  <node name="servo_interpolation"
+        pkg="hand_navigation_pr2" type="servo_interpolation.py" />
+
+  <node pkg="roseus" type="roseus" name="grasp_detector" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/grasp-detector.l"  />
+
+</launch>

@@ -1,6 +1,6 @@
 <launch>
   
-  <arg name="gui" value="true" />
+  <arg name="gui" value="false" />
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
   <arg name="input_base_scan" value="/base_scan_filtered" />
@@ -25,6 +25,10 @@
   <include file="$(find hand_navigation_pr2)/launch/virtual_force_publisher_transformed.launch" >
     <arg name="gui" value="false" />
   </include>
+
+  <include file="$(find hand_navigation_pr2)/launch/robot_hand.launch" />
+
+  <include file="$(find hand_navigation_pr2)/launch/velocity_filter.launch" />
   
   <include file="$(find jsk_perception)/launch/hand_pose_estimation_2d.launch" >
     <arg name="INPUT_IMAGE" value="$(arg input_rgb_image)" />
@@ -67,29 +71,11 @@
     </rosparam>
   </node>
 
-  <node name="velocity_filter"
-        pkg="hand_navigation_pr2" type="velocity_filter.py">
-    <remap from="~input" to="/navigation/cmd_vel" />
-    <remap from="~output" to="/navigation/cmd_vel_filtered" />
-  </node>
-
-  <node name="mux_overwrite"
-        pkg="hand_navigation_pr2" type="mux_selector_overwrite.py" />
-
   <node pkg="roseus" type="roseus" name="give_hand_init" output="screen"
         args="$(find hand_navigation_pr2)/euslisp/init.l"  />
 
   <node pkg="roseus" type="roseus" name="go" output="screen"
         args="$(find hand_navigation_pr2)/euslisp/go.l"  />
-
-  <node pkg="roseus" type="roseus" name="grasp_detector" output="screen"
-        args="$(find hand_navigation_pr2)/euslisp/grasp-detector.l"  />
-
-  <node pkg="roseus" type="roseus" name="hand_pose" output="screen"
-        args="$(find hand_navigation_pr2)/euslisp/hand-pose.l"  />
-
-  <node name="servo_interpolation"
-        pkg="hand_navigation_pr2" type="servo_interpolation.py" />
 
 
   <!-- <group ns="filter_base_laser_scan" > -->
