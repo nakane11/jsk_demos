@@ -18,7 +18,7 @@ class HandNavigation():
 
     def __init__(self):
         self.reset_params()
-        self.robot_hand = rospy.get_param('~robot_hand', True)
+        self.robot_hand = rospy.get_param('~robot_hand', False)
         self.sound_client = SoundClient(blocking=True, sound_action='robotsound_jp', sound_topic='robotsound_jp')
         self.voice_q = queue.Queue()
         self.result_q = queue.Queue()
@@ -113,13 +113,13 @@ class HandNavigation():
 
             elif self.navigation:
                 if text == "速い":
-                    goal = VelocityFilterGoal(calculation = 2, rate = 0.2)
+                    goal = VelocityFilterGoal(calculation = 3, rate = 0.5)
                     self.velocity_client.send_goal(goal)
                     res = self.velocity_client.get_result()
                     rospy.loginfo("current speed:{}".format(res.speed))
                     self.sound_client.say('速度を{}に変更しました'.format(res.speed))
                 elif text == "遅い":
-                    goal = VelocityFilterGoal(calculation = 1, rate = 0.2)
+                    goal = VelocityFilterGoal(calculation = 3, rate = 2)
                     self.velocity_client.send_goal(goal)
                     res = self.velocity_client.get_result()
                     self.sound_client.say('速度を{}に変更しました'.format(res.speed))
@@ -131,9 +131,9 @@ class HandNavigation():
 
             else:
                 if text == "進んで":
-                    if self.wait_for_grasp():
-                        self.go_pub.publish(GoRequest(request = 3))
-                        self.navigation = True
+                    # if self.wait_for_grasp():
+                    self.go_pub.publish(GoRequest(request = 3))
+                    self.navigation = True
 
                 elif text == "手をつなごう":
                     self.nav_requested = False
@@ -161,7 +161,8 @@ class HandNavigation():
                     self.sound_client.say('中止しました')                                        
 
                 else:
-                    self.sound_client.say("わかりません")
+                    # self.sound_client.say("わかりません")
+                    print("わかりません")
                     
             self.voice_q.task_done()
 
@@ -204,6 +205,8 @@ class HandNavigation():
                         if self.wait_for_grasp():
                             self.navigation = True
                             self.go_pub.publish(GoRequest(request = 1, destination = self.destination))
+                else:
+                    self.wait_for_grasp()
                                       
 
             elif result == "move-base succeeded":
@@ -235,18 +238,22 @@ class HandNavigation():
         if self.robot_hand:
             self.hand_pose_client.send_goal(HandPoseGoal(pose = 1))
             self.hand_pose_client.wait_for_result()
+            self.is_grasped = True
         else:
-            self.sound_client.say('つかまってください')                        
+            # self.sound_client.say('つかまってください')                        
             self.inturrupt = False
             self.is_wait_for_grasp = True
             while not self.is_grasped:
+                rospy.loginfo("[main] wait_for_grasp loop {}".format(self.is_wait_for_grasp))
                 if self.inturrupt:
                     self.inturrupt = False
                     rospy.loginfo("[main] wait_for_grasp inturrupt")
                     return False
                 else:
                     self.grasp_client.send_goal(GraspGoal())
-                    self.is_grasped = self.grasp_client.get_result().grasped
+                    self.grasp_client.wait_for_result()
+                    res = self.grasp_client.get_result()
+                    self.is_grasped = res.grasped
         rospy.loginfo("[main] wait_for_grasp end")        
         return True
 

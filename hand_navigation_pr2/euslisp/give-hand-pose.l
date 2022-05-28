@@ -28,12 +28,14 @@
         ;; (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector -400 600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
         ;; (send *pr2* :larm :inverse-kinematics (make-coords :pos (float-vector 135 679 946)) :rotation-axis nil)
         (send *pr2* :larm :angle-vector #f(44.3333 36.9321 9.03022 -121.342 -133.409 -92.8499 -19.1599))
-        (send *pr2* :head :angle-vector #f(77.0 23.0)))
+        ;; (send *pr2* :head :angle-vector #f(77.0 23.0))
+        )
       (progn
         ;; (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector -400 -600 (elt (send hand-coords :pos) 2))) :rotation-axis nil)
         ;; (send *pr2* :rarm :inverse-kinematics (make-coords :pos (float-vector 135 -679 946)) :rotation-axis nil)
         (send *pr2* :rarm :angle-vector #f(-44.3333 36.9321 9.03022 -121.342 133.409 -92.8499 -19.1599))
-        (send *pr2* :head :angle-vector #f(-77.0 23.0))))
+        ;; (send *pr2* :head :angle-vector #f(-77.0 23.0))
+        ))
 
   ;;(send *pr2* :head :look-at (send *pr2* arm :end-coords :worldpos))
 

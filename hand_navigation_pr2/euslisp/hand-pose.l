@@ -2,16 +2,31 @@
 (load "package://pr2eus/pr2-interface.l")
 
 (defclass hand-pose
-    :slots (server servo-client grasp-client servo-goal hand-pose-array))
+    :slots (inturrupt server servo-client grasp-client servo-goal hand-pose-array))
 
 (defmethod hand-pose
-    (:wait-for-grasp()
-     (send *ri* :speak-en "start")
+    (:wait-for-grasp-vision()
+     (ros::ros-info "[hand-pose] wait-for-grasp-vision start")
      (let ((is_grasped nil))
        (while (null is_grasped)
+         (when inturrupt
+             (return nil))
          (send grasp-client :send-goal (instance hand_navigation_pr2::GraspGoal :init))
          (send grasp-client :wait-for-result)
-         (setq is_grasped (send (send grasp-client :get-result) :grasped)))))
+         (setq is_grasped (send (send grasp-client :get-result) :grasped))))
+     (ros::ros-info "[hand-pose] wait-for-grasp-vision end"))
+
+  (:wait-for-grasp-sensor ()
+                          (ros::ros-info "[hand-pose] wait-for-grasp-sensor start")
+                          (let ((is_grasped nil))
+                            (while (null is_grasped)
+                              (when inturrupt
+                                (return nil))
+                              (let ((r (one-shot-subscribe "/left_hand/resistance" std_msgs::Bool)))
+                                ;;subscribe analog sensor value
+                                (when (> r 100)
+                                  (setq is_grasped t))))
+                            (ros::ros-info "[hand-pose] wait-for-grasp-sensor end")))
 
     (:wait-for-ungrasp()
      (let ((is_grasped t))
@@ -28,13 +43,13 @@
   (:hold-hand ()
               (send servo-goal :goal :angle_array (elt hand-pose-array 0))              
               (send servo-client :send-goal servo-goal)
-              (send self :wait-for-grasp)
+              (send self :wait-for-grasp-vision)
               (send servo-goal :goal :angle_array (elt hand-pose-array 1))              
               (send servo-client :send-goal servo-goal)
               (send servo-client :wait-for-result)
               (send *pr2* :angle-vector (send *ri* :state :potentio-vector)) 
               (send *pr2* :head :angle-vector #f(0.0 12))
-              (send *ri* :angle-vector (send *pr2* :angle-vector) 800))
+              (send *ri* :angle-vector (send *pr2* :angle-vector) 1500))
 
   (:release-hand ()
               (send servo-goal :goal :angle_array (elt hand-pose-array 0))              
@@ -45,7 +60,7 @@
               (send servo-client :wait-for-result)
               (send *pr2* :angle-vector (send *ri* :state :potentio-vector)) 
               (send *pr2* :head :angle-vector #f(0.0 12))
-              (send *ri* :angle-vector (send *pr2* :angle-vector) 800))
+              (send *ri* :angle-vector (send *pr2* :angle-vector) 1500))
   
   (:execute-cb (server hand-pose-goal)
                (let ((msg (send server :result)) (pose (send hand-pose-goal :goal :pose)))

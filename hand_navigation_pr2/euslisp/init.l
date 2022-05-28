@@ -34,7 +34,7 @@
                          (return-from :set-shoulder-width t))
                        (send *pr2* :head :angle-vector #f(0.0 14.694))
                        (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
-                       (send *ri* :speak-en "stand in front of me" :wait t)
+                       ;; (send *ri* :speak-en "stand in front of me" :wait t)
                        (setq width 0.7)
                        (while (> width 0.6)
                          (ros::ros-info "shoulder")
@@ -61,7 +61,7 @@
                    (send *pr2* :head :angle-vector #f(0.0 14.694))
                    (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
                    ;; (send *ri* :wait-interpolation)
-                   (send *ri* :speak-en "show me your hand":wait t)
+                   ;; (send *ri* :speak-en "show me your hand":wait t)
                    (while (null hand-coords)
                      (ros::spin-once)                     
                      (if is-cancelled
@@ -69,7 +69,7 @@
                          (setq hand-coords (hand-pose-subscriber))))
                    (ros::ros-info "give-hand-pose")
                    (give-hand-pose hand-coords)
-                   (send *ri* :speak-en "set target-arm" :wait t)
+                   ;; (send *ri* :speak-en "set target-arm" :wait t)
                    t)
 
   (:publish-boundingbox ()
@@ -88,7 +88,7 @@
                             (send bbox_req :position (float-vector -0.2 (- -0.5 (/ width 2)) 0.0)))
                         (send bbox_req :dimention (float-vector 0.6 width 2.0))
                         (setq bbox_res (ros::service-call "/boundingbox_publisher/set_param" bbox_req))
-                        (send *ri* :speak-en "published bounding box" :wait t)
+                        ;; (send *ri* :speak-en "published bounding box" :wait t)
                         (setq pub-bbox t)
                         t)
 
@@ -109,7 +109,7 @@
 
   (:reset-footprint()
                    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]")
-                   (send *ri* :speak-en "reset footprint" :wait t)
+                   ;; (send *ri* :speak-en "reset footprint" :wait t)
                    )
   
   
