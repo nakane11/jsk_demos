@@ -22,8 +22,9 @@
     <arg name="continuous" default="true" />
   </include>
 
-  <include file="$(find hand_navigation_pr2)/launch/virtual_force_publisher_transformed.launch" >
+  <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" >
     <arg name="gui" value="false" />
+    <arg name="look" value="true" />
   </include>
 
   <include file="$(find hand_navigation_pr2)/launch/robot_hand.launch" />
