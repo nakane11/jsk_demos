@@ -138,8 +138,8 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 box_msg.dimensions.z = 0.1
                 boxes_msg.boxes.append(box_msg)
 
-        self.pub.publish(boxes_msg)
-        self.pose_pub.publish(pose_array_msg)
+                self.pub.publish(boxes_msg)
+                self.pose_pub.publish(pose_array_msg)
 
 
 if __name__ == '__main__':
