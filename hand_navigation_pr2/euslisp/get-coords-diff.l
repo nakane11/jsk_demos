@@ -1,8 +1,8 @@
 ;; source ros/pr2_ws/devel/setup.bash
 (load "package://pr2eus/pr2-interface.l")
 
-(pr2-init)
-(objects (list *pr2*))
+(pr2-init nil)
+;; (objects (list *pr2*))
 
 (defun save-spot ()
   (let ((spot (one-shot-subscribe "/amcl_pose" geometry_msgs::posewithcovariancestamped)))
