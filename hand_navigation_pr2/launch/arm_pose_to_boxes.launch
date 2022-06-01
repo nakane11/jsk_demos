@@ -65,10 +65,25 @@
       queue_size: 100
     </rosparam>
   </node>
-  
-  <node name="attention_estimation"
-        pkg="hand_navigation_pr2" type="attention_estimation.py">
-  </node>
+
+  <node name="cluster_point_indices_decomposer"
+        pkg="nodelet" type="nodelet"
+        args="standalone jsk_pcl/ClusterPointIndicesDecomposer">
+    <remap from="~input" to="$(arg input_cloud)" />
+    <remap from="~target" to="attention_clipper/output/cluster_point_indices" />
+    <!-- <remap from="~align_planes" to="/multi_plane_estimate_left_hand_camera/output_refined_polygon" /> -->
+    <!-- <remap from="~align_planes_coefficients" to="/multi_plane_estimate_left_hand_camera/output_refined_coefficients" /> -->
+    <rosparam subst_value="true">
+      <!-- align_boxes: true -->
+      <!-- align_boxes_with_plane: false -->
+      <!-- use_pca: $(arg use_pca) -->
+      <!-- target_frame_id: head_mount_kinect_rgb_optical_frame -->
+      approximate_sync: true
+    </rosparam>
+  </node>  
+  <!-- <node name="attention_estimation" -->
+  <!--       pkg="hand_navigation_pr2" type="attention_estimation.py"> -->
+  <!-- </node> -->
   
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"

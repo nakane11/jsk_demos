@@ -11,7 +11,7 @@ Panels:
         - /PointCloud21
         - /attention_cloud1
         - /Image1
-        - /Marker1
+        - /BoundingBoxArray2
       Splitter Ratio: 0.5
     Tree Height: 291
   - Class: rviz/Selection
@@ -618,14 +618,18 @@ Visualization Manager:
       Transport Hint: raw
       Unreliable: false
       Value: true
-    - Class: rviz/Marker
+    - Class: jsk_rviz_plugin/BoundingBoxArray
       Enabled: true
-      Marker Topic: /attention_point
-      Name: Marker
-      Namespaces:
-        "": true
-      Queue Size: 100
+      Name: BoundingBoxArray
+      Topic: /cluster_point_indices_decomposer/boxes
+      Unreliable: false
       Value: true
+      alpha: 0.800000011920929
+      color: 25; 255; 0
+      coloring: Auto
+      line width: 0.004999999888241291
+      only edge: true
+      show coords: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -654,25 +658,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.566155910491943
+      Distance: 4.964895248413086
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.8310354948043823
-        Y: 0.9763010144233704
-        Z: 1.900151014328003
+        X: 1.4845144748687744
+        Y: 0.6059250235557556
+        Z: 1.6317274570465088
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.325398325920105
+      Pitch: 0.30539846420288086
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.5903736352920532
+      Yaw: 2.80037522315979
     Saved: ~
 Window Geometry:
   Displays:
