@@ -2,15 +2,30 @@
 (ros::roseus-add-msgs "speech_recognition_msgs")
 (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 (load "package://hand_navigation_pr2/euslisp/get-coords-diff.l")
-
+(ros::roseus-add-msgs "std_msgs")
 (ros::roseus "teach_spot")
 (pr2-init nil)
 
+(defun my-string-left-trim (bag str)
+  (declare (string str))
+  (declare (string bag))
+  (if (string= (subseq str 0 (length bag)) bag)
+      (subseq str (length bag))
+      nil))
+
+(defun my-string-right-trim (bag str)
+  (declare (string str))
+  (declare (string bag))
+  (if (string= (subseq str (- (length str) (length bag))) bag)
+      (subseq str 0 (- (length str) (length bag)))
+      nil))
+
 (defclass teach-spot
-    :slots (mode spot spot-graph spot-list path prev-n goal-n goal-name sol))
+    :slots (label mode spot spot-graph spot-list path prev-n goal-n goal-name sol))
 
 (defmethod teach-spot
     (:init ()
+     (setq label 0)
      (setq mode :record)
      (setq spot-graph (instance graph :init))
      (setq sol (instance breadth-first-graph-search-solver :init))
@@ -25,7 +40,9 @@
 
   (:add-spot (spot-coords &optional name)
              (let (n)
-               (setq n (instance node :init (or name (format nil "~A" (send (ros::time-now) :to-sec)))))
+               ;; (setq n (instance node :init (or name (format nil "~A" (send (ros::time-now) :to-sec)))))
+               (setq n (instance node :init (or name (format nil "~A" label))))
+               (unless name (incf label))
                (send n :put :coords spot-coords)
                (ros::ros-info "node ~A ~% coords:~A" (send n :name) (send n :get :coords))
                (dolist (i (send spot-graph :nodes)) ;; if node exists nearby
@@ -53,11 +70,11 @@
               (send spot-graph :write-to-dot "a" path))
 
   (:voice-cb (msg)
-       (let ((text (elt (send msg :transcript) 0)))
-         (ros::ros-info "~A" text)
+             (let ((text (elt (send msg :transcript) 0)))
+         (ros::ros-info "text:~A" text)
          (cond
            ((substringp "に行こう" text)
-            (setq goal-name (string-right-trim "に行こう" text))
+            (setq goal-name (my-string-right-trim "に行こう" text))
             (ros::ros-info "goal-name: ~A" goal-name)
             ;; (send *ri* :nod)
             (let ((spot-coords spot) start-n)
@@ -84,7 +101,7 @@
             )
 
            ((substringp "行き方を教えて" text)
-            (setq goal-name (string-right-trim "への行き方を教えて" text))
+            (setq goal-name (my-string-right-trim "への行き方を教えて" text))
             (ros::ros-info "goal-name: ~A" goal-name)
             (let ((spot-coords spot) start-n)
               (dolist (n (send spot-graph :nodes)) ;; if node exists nearby
@@ -93,16 +110,18 @@
                   (return t)))
               (ros::ros-info "start-n: ~A" start-n)
               (when start-n
-              (ros::ros-info "1")                
+                (ros::ros-info "1")                
                 (setq goal-n (send spot-graph :node goal-name)) ;; find goal node from graph
                 (when goal-n ;; if goal exists in graph
                   (ros::ros-info "2")                
                   (setq path (send sol :solve-by-name spot-graph (send start-n :name) goal-name))
                   (when path;; if solver returns path from start-n to goal-n
-                                  (ros::ros-info "3")                
+                    (ros::ros-info "3")                
                     (dolist (i path)
                       (send *ri* :speak-jp (format nil "~A" (send (send i :state) :name)) :wait t))
-                    (return-from :voice-cb))))))
+                    (send *ri* :speak-jp "の順に通ります" :wait t))))
+              (ros::ros-info "fail")                
+              (return-from :voice-cb)))
 
            
          ;; ((substringp "手をつなごう" text)
@@ -111,11 +130,10 @@
          
          ((and (substringp "ここが" text) (substringp "だよ" text))
           (let (spot-name)
-            (setq spot-name (string-left-trim "ここが" (string-right-trim "だよ" text)))
+            (setq spot-name (my-string-left-trim "ここが" (my-string-right-trim "だよ" text)))
             (ros::ros-info "spot-name: ~A" spot-name)
             (send self :add-spot spot spot-name)
             ;; (send *ri* :speak-jp (format nil "~A" spot-name) :wait t)
-            (ros::ros-info (format nil "~Aを覚えました" spot-name))
             (push spot-name spot-list)
             ))
          
