@@ -64,6 +64,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
         self.sub.unregister()
 
     def _convert(self, msg):
+        print("convert")
         header = deepcopy(msg.header)
         pose_array_msg = geometry_msgs.msg.PoseArray(header=header)
         boxes_msg = BoundingBoxArray(header=header)
@@ -100,6 +101,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                               pose.position.z]
                 target_poses.append((elbow_pose, wrist_pose))
                 
+            dim_x = 10.0
             for elbow_pose, wrist_pose in target_poses:
                 wrist_pose = np.array(wrist_pose)
                 elbow_pose = np.array(elbow_pose)
@@ -118,18 +120,20 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 pose.orientation.w = q_xyzw[3]
                 pose_array_msg.poses.append(pose)
 
-                trans = np.linalg.inv(matrix).dot(np.array([5, 0, 0, 1]))
+                trans_vector = np.array([dim_x / 2.0, 0, 0, 1])
+                trans = np.dot(matrix, trans_vector) + np.array(
+                    [wrist_pose[0],
+                     wrist_pose[1],
+                     wrist_pose[2],
+                     0.0])
 
                 box_msg = BoundingBox(header=header)
-                # box_msg.pose.position.x = wrist_pose[0] + trans[0] 
-                # box_msg.pose.position.y = wrist_pose[1] + trans[1]
-                # box_msg.pose.position.z = wrist_pose[2] + trans[2]
-                box_msg.pose.position.x = wrist_pose[0]
-                box_msg.pose.position.y = wrist_pose[1]
-                box_msg.pose.position.z = wrist_pose[2]
-                
+
+                box_msg.pose.position.x = trans[0]
+                box_msg.pose.position.y = trans[1]
+                box_msg.pose.position.z = trans[2]
                 box_msg.pose.orientation = pose.orientation
-                box_msg.dimensions.x = 10
+                box_msg.dimensions.x = dim_x
                 box_msg.dimensions.y = 0.1
                 box_msg.dimensions.z = 0.1
                 boxes_msg.boxes.append(box_msg)
