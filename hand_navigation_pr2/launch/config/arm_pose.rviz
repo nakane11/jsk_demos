@@ -9,9 +9,9 @@ Panels:
         - /PoseArray1
         - /BoundingBoxArray1
         - /PointCloud21
-        - /attention_point1
         - /attention_cloud1
         - /Image1
+        - /Marker1
       Splitter Ratio: 0.5
     Tree Height: 291
   - Class: rviz/Selection
@@ -579,21 +579,6 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: attention_point
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: ""
-      Unreliable: false
-      Value: true
-    - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
         Max Value: 10
@@ -614,7 +599,7 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 1
+      Size (m): 0.05000000074505806
       Style: Flat Squares
       Topic: /attention_cloud
       Unreliable: false
@@ -632,6 +617,14 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /attention_point
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -661,7 +654,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.603471755981445
+      Distance: 6.566155910491943
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -676,10 +669,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3953983783721924
+      Pitch: 0.325398325920105
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.97541618347168
+      Yaw: 1.5903736352920532
     Saved: ~
 Window Geometry:
   Displays:

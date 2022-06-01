@@ -41,7 +41,8 @@
 
   <node name="attention_clipper"
         pkg="nodelet" type="nodelet"
-        args="load jsk_pcl/AttentionClipper $(arg manager)" >
+        args="load jsk_pcl/AttentionClipper $(arg manager)"
+        clear_params="true" >
     <remap from="~input/points" to="$(arg input_cloud)" />
     <remap from="~input/box_array" to="/arm_pose_to_boxes/output/boxes" />
     <rosparam>
@@ -53,7 +54,8 @@
 
   <node name="extract_indices"
         pkg="nodelet" type="nodelet"
-        args="load jsk_pcl/ExtractIndices $(arg manager)">
+        args="load jsk_pcl/ExtractIndices $(arg manager)"
+        clear_params="true">
     <remap from="~input" to="$(arg input_cloud)" />
     <remap from="~indices" to="attention_clipper/output/point_indices" />
     <remap from="~output" to="/attention_cloud" />
@@ -66,7 +68,6 @@
   
   <node name="attention_estimation"
         pkg="hand_navigation_pr2" type="attention_estimation.py">
-    <remap from="~input" to="/attention_cloud" />
   </node>
   
   <group if="$(arg gui)" >
