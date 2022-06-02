@@ -28,7 +28,8 @@
      (setq label 0)
      (setq mode :record)
      (setq spot-graph (instance graph :init))
-     (setq sol (instance breadth-first-graph-search-solver :init))
+     ;; (setq sol (instance breadth-first-graph-search-solver :init))
+     (setq sol (instance depth-first-graph-search-solver :init))
      (ros::subscribe "/Tablet/voice" speech_recognition_msgs::SpeechRecognitionCandidates #'send self :voice-cb)
      (ros::subscribe "/amcl_pose" geometry_msgs::posewithcovariancestamped #'send self :spot-cb)
      (ros::advertise "/follow_waypoints/initialpose" geometry_msgs::posewithcovariancestamped 1)
@@ -45,7 +46,7 @@
              (when (null spot-coords)
                (return-from :add-spot))
              (dolist (i (send spot-graph :nodes)) ;; if node exists nearby, connect to prev-n instead of adding new one 
-               (when (< (abs (get-diff-position spot-coords (send i :get :coords))) 0.4)
+               (when (< (abs (get-diff-position spot-coords (send i :get :coords))) 0.3)
                  (unless (and (member (send i :name) spot-list :test #'string-equal) name)
                    (when name
                      (send i :name name))
@@ -88,22 +89,27 @@
                   (when goal-n
                     (let ((spot-coords spot) start-n)
                       (dolist (n (send spot-graph :nodes)) ;; if node exists nearby
-                        (when (< (abs (get-diff-position spot-coords (send n :get :coords))) 0.4)
+                        (when (< (abs (get-diff-position spot-coords (send n :get :coords))) 0.3)
                           (setq start-n n)
                           (return)))
                       (ros::ros-info "start-node: ~A" (send start-n :name))
                       (when start-n
                         (setq path nil)
                         (setq path (send sol :solve-by-name spot-graph (send start-n :name) goal-name))
-                        (when path 
+                        (ros::ros-info "1")
+                        (when path
+                          (ros::ros-info "2")
                           ;; (setq mode :navigation)
                           (ros::publish "/path_reset" (instance std_msgs::empty :init))
+                          (ros::ros-info "2.5")
                           (dolist (i path)
+                            (ros::ros-info "3")
                             (let ((pose (instance geometry_msgs::posewithcovariancestamped :init)))
                               (send (send pose :header) :frame_id "map")
                               (send (send pose :pose) :pose (ros::coords->tf-pose (send (send i :state) :get :coords)))
                               (ros::publish "/follow_waypoints/initialpose" pose)))
                           (ros::publish "/path_ready" (instance std_msgs::empty :init))
+                          (ros::ros-info "4")
                           (return-from :voice-cb)))))
 
                   (ros::ros-info "solver failed")
@@ -138,7 +144,7 @@
                       (ros::ros-info "spot-name: ~A" spot-name)
                       (push spot-name spot-list)
                       (unless (null prev-n)
-                        (when (< (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.4)
+                        (when (< (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.3)
                           (unless (member (send prev-n :name) spot-list :test #'string-equal)
                             (ros::ros-info (format nil "rename ~A to ~A" (send prev-n :name) spot-name))
                             (send prev-n :put :coords spot-coords)
@@ -173,8 +179,8 @@
            (while (length path)
              (let* ((next-sn (pop path)) (next-n (send next-sn :state)) (next (send next-n :get :coords)) (diff (convert-go-to-robot next)) (x (car diff)) (d (cadr diff)))
                (ros::ros-info "x:~A d:~A" x d)
-               (send *ri* :go-pos 0 0 d)
-               (send *ri* :go-pos x 0 0)))
+               (send *ri* :go-pos-unsafe 0 0 d)
+               (send *ri* :go-pos-unsafe x 0 0)))
            ;; (send *ri* :speak-jp (format nil "~Aに到着しました" goal))
            (setq prev-n goal-n)
            (setq goal-n nil)
