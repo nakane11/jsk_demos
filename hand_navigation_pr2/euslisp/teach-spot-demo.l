@@ -20,6 +20,21 @@
       (subseq str 0 (- (length str) (length bag)))
       nil))
 
+(defun cross-line (a b c d)
+  (let ((x1 (elt a 0)) (x2 (elt b 0)) (x3 (elt c 0)) (x4 (elt d 0))
+        (y1 (elt a 1)) (y2 (elt b 1)) (y3 (elt c 1)) (y4 (elt d 1)))
+    (setq m (- (* (- x1 x2) (- y3 y1)) (* (- y1 y2) (- x3 x1))))
+    (setq n (- (* (- x1 x2) (- y4 y1)) (* (- y1 y2) (- x4 x1))))
+    (when (> (* m n) 0)
+      (return-from cross-line nil))
+    
+    (setq det (- (* (- x1 x2) (- y4 y3)) (* (- x4 x3) (- y1 y2))))
+    (setq u (/ (+ (* (- y4 y3) (- x4 x2)) (* (- x3 x4) (- y4 y2))) det))
+    (setq x (+ (* u x1) (* (- 1 u) x2)))
+    (setq y (+ (* u y1) (* (- 1 u) y2))))
+    (cons x y)
+    ))
+
 (defclass teach-spot
     :slots (label mode spot spot-graph spot-list path prev-n goal-n goal-name sol))
 
