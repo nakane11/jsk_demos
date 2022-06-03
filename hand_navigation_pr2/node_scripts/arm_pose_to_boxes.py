@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
 from copy import deepcopy
-
 import geometry_msgs.msg
 import numpy as np
-from jsk_recognition_msgs.msg import BoundingBox
-from jsk_recognition_msgs.msg import BoundingBoxArray
+from jsk_recognition_msgs.msg import BoundingBox, BoundingBoxArray
 from jsk_recognition_msgs.msg import PeoplePoseArray
 from jsk_topic_tools import ConnectionBasedTransport
 import rospy
@@ -13,9 +11,9 @@ import PyKDL
 import tf2_geometry_msgs
 import tf2_ros
 
-
 from tf.transformations import quaternion_from_matrix as matrix2quaternion
 from tf.transformations import unit_vector as normalize_vector
+from tf.transformations import vector_norm
 
 
 def outer_product_matrix(v):
@@ -52,6 +50,12 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
 
     def __init__(self):
         super(ArmPoseToBoxes, self).__init__()
+        self._duration_timeout = rospy.get_param("~timeout", 3.0)
+	self._tf_buffer = tf2_ros.Buffer()
+        self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
+        # self.base_frame_id = rospy.get_param("~base_frame_id", "base_footprint")
+        self.base_frame_id = rospy.get_param("~base_frame_id", "base_link")
+        
         self.pub = self.advertise('~output/boxes', BoundingBoxArray, queue_size=1)
         self.pose_pub = self.advertise('~output/poses',
                                        geometry_msgs.msg.PoseArray,
@@ -64,10 +68,22 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
         self.sub.unregister()
 
     def _convert(self, msg):
-        print("convert")
         header = deepcopy(msg.header)
         pose_array_msg = geometry_msgs.msg.PoseArray(header=header)
         boxes_msg = BoundingBoxArray(header=header)
+        try:
+            transform = self._tf_buffer.lookup_transform(
+                self.base_frame_id,
+                msg.header.frame_id,
+                msg.header.stamp,
+                timeout=rospy.Duration(self._duration_timeout))
+            pykdl_transform_base_to_camera = tf2_geometry_msgs.transform_to_kdl(
+                transform)
+        except (tf2_ros.LookupException,
+                tf2_ros.ConnectivityException,
+                tf2_ros.ExtrapolationException) as e:
+            rospy.logwarn('{}'.format(e))
+            return
 
         left_elbow_name = "left elbow"
         right_elbow_name = "right elbow"
@@ -78,34 +94,63 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
             if left_elbow_name in person.limb_names and left_wrist_name in person.limb_names:
                 elbow_index = person.limb_names.index(left_elbow_name)
                 wrist_index = person.limb_names.index(left_wrist_name)
-                pose = person.poses[elbow_index]
-                elbow_pose = [pose.position.x,
-                              pose.position.y,
-                              pose.position.z]
-                pose = person.poses[wrist_index]
-                wrist_pose = [pose.position.x,
-                              pose.position.y,
-                              pose.position.z]
-                target_poses.append((elbow_pose, wrist_pose))
+                scores = np.array(person.scores)
+                rospy.loginfo("[left] {}".format(np.average(scores)))
+                # elbow_score = person.scores[elbow_index]
+                # wrist_score = person.scores[wrist_index]
+                # rospy.loginfo("[left] elbow:{} wrist:{}".format(elbow_score, wrist_score))
+                # if elbow_score > 0.6 and wrist_score > 0.6:
+                if np.average(scores) > 0.6:
+                    pose = person.poses[elbow_index]
+                    elbow_pose = [pose.position.x,
+                                  pose.position.y,
+                                  pose.position.z]
+                    pose = person.poses[wrist_index]
+                    wrist_pose = [pose.position.x,
+                                  pose.position.y,
+                                  pose.position.z]
+                    target_poses.append((elbow_pose, wrist_pose))
 
             if right_elbow_name in person.limb_names and right_wrist_name in person.limb_names:
                 elbow_index = person.limb_names.index(right_elbow_name)
                 wrist_index = person.limb_names.index(right_wrist_name)
-                pose = person.poses[elbow_index]
-                elbow_pose = [pose.position.x,
-                              pose.position.y,
-                              pose.position.z]
-                pose = person.poses[wrist_index]
-                wrist_pose = [pose.position.x,
-                              pose.position.y,
-                              pose.position.z]
-                target_poses.append((elbow_pose, wrist_pose))
+                scores = np.array(person.scores)
+                rospy.loginfo("[right] {}".format(np.average(scores)))
+            #     # elbow_score = person.scores[elbow_index]
+            #     # wrist_score = person.scores[wrist_index]
+            #     # rospy.loginfo("[right] elbow:{} wrist:{}".format(elbow_score, wrist_score))
+            #     # if elbow_score > 0.6 and wrist_score > 0.6:
+                if np.average(scores) > 0.6:
+                    pose = person.poses[elbow_index]
+                    elbow_pose = [pose.position.x,
+                                  pose.position.y,
+                                  pose.position.z]
+                    pose = person.poses[wrist_index]
+                    wrist_pose = [pose.position.x,
+                                  pose.position.y,
+                                  pose.position.z]
+                    target_poses.append((elbow_pose, wrist_pose))
                 
             dim_x = 10.0
             for elbow_pose, wrist_pose in target_poses:
                 wrist_pose = np.array(wrist_pose)
                 elbow_pose = np.array(elbow_pose)
                 v = wrist_pose - elbow_pose
+                v_base = pykdl_transform_base_to_camera * PyKDL.Vector(*wrist_pose) \
+                         - pykdl_transform_base_to_camera * PyKDL.Vector(*elbow_pose)
+                v_base = np.array([v_base.x(), v_base.y(), v_base.z()])
+                v_norm = vector_norm(v_base)
+                v_base = normalize_vector(v_base)
+
+                rospy.loginfo("{}, {}, {}".format(*v_base))
+                rospy.loginfo("norm:{}".format(v_norm))
+                # vec_v_base = pykdl_transform_base_to_camera.M * PyKDL.Vector(*(wrist_pose - elbow_pose))
+                # vec_v_base = np.array([vec_v_base.x(), vec_v_base.y(),vec_v_base.z()])
+                # vec_v_base = normalize_vector(vec_v_base)
+                # rospy.loginfo("vec_v_base {}, {}, {}".format(*vec_v_base))
+
+                if abs(v_base[2]) > 0.7 or v_norm < 0.2:
+                    continue
                 matrix = np.eye(4)
                 matrix[:3, :3] = rotation_matrix_from_axis(v, axes="xz")
                 q_xyzw = matrix2quaternion(matrix)
