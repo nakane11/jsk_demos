@@ -4,16 +4,17 @@
 (defun cb (msg)
   (ros::ros-info "cb")
   (setq stamp (send msg :header :stamp))
+  (send *tfl* :wait-for-transform "/base_footprint" (send msg :header :frame_id) stamp 3.0)
   (setq base-to-camera-coords (send *tfl* :lookup-transform "/base_footprint" (send msg :header :frame_id) stamp))
   (when base-to-camera-coords
     (let ((poses (send msg :poses)) (r 1.5))
       (when (> (length poses) 0)
         (setq camera-to-centroid (ros::tf-pose->coords (car poses)))
-        (setq point (send base-to-camera-coords :transform camera-to-centroid))
-        
+        (setq point-coords (send base-to-camera-coords :transform camera-to-centroid))
+        (setq point (scale 1000 (send point-coords :pos)))
         (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
         (setq current (send *pr2* :head :angle-vector))
-        (send *pr2* :head :look-at (send point :pos))
+        (send *pr2* :head :look-at point)
         (setq target (send *pr2* :head :angle-vector))
         
         (setq move (float-vector (+ (elt current 0) (/ (- (elt target 0) (elt current 0)) r))
