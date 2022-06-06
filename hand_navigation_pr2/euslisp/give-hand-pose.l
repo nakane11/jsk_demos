@@ -6,6 +6,28 @@
 (when (boundp '*tfl*)
   (setq *tfl* (instance ros::transform-listener :init)))
 
+(defun raise-hand (hand-coords)
+  (ros::ros-info (format nil "~A" (elt (send hand-coords :pos) 0)))
+  (when (< (elt (send hand-coords :pos) 0) 600)
+    (if (> (elt (send hand-coords :pos) 1) 0)
+        (setq arm "larm")
+        (setq arm "rarm"))
+    (if (string-equal arm "larm")
+        (progn
+          (send *pr2* :larm :angle-vector #f(44.3333 36.9321 9.03022 -121.342 -133.409 -92.8499 -19.1599))
+          (send *pr2* :head :angle-vector #f(77.0 23.0))
+          )
+        (progn
+          (send *pr2* :rarm :angle-vector #f(-44.3333 36.9321 9.03022 -121.342 133.409 -92.8499 -19.1599))
+          (send *pr2* :head :angle-vector #f(-77.0 23.0))
+          ))
+    (send *ri* :angle-vector (send *pr2* :angle-vector) 2000)
+    (send *ri* :wait-interpolation)
+    (ros::set-param "/target_arm" arm)
+    (return-from raise-hand t)
+    )
+  nil)
+
 (defun give-hand-pose (hand-coords)
   (send *pr2* :head :angle-vector #f(0.0 14.694))
   (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
