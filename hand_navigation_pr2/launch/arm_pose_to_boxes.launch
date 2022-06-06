@@ -35,7 +35,7 @@
   </node>
 
   <node name="arm_pose_to_boxes"
-        pkg="hand_navigation_pr2" type="arm_pose_to_boxes.py">
+        pkg="hand_navigation_pr2" type="arm_pose_to_boxes.py" output="screen">
     <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
   </node>
 
@@ -71,7 +71,7 @@
         args="standalone jsk_pcl/ClusterPointIndicesDecomposer">
     <remap from="~input" to="$(arg input_cloud)" />
     <remap from="~target" to="attention_clipper/output/cluster_point_indices" />
-     <rosparam subst_value="true">
+     <rosparam>
       <!-- align_boxes: true -->
       <!-- align_boxes_with_plane: false -->
       <!-- use_pca: $(arg use_pca) -->
@@ -80,9 +80,8 @@
     </rosparam>
   </node>
   
- <!-- <node name="attention_estimation"  -->
- <!--       pkg="hand_navigation_pr2" type="attention_estimation.py"> -->
- <!-- </node> -->
+  <node pkg="roseus" type="roseus" name="look_at" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/look-at-pointed-direction.l"  />
   
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"

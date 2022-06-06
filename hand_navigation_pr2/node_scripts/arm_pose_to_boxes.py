@@ -53,7 +53,6 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
         self._duration_timeout = rospy.get_param("~timeout", 3.0)
 	self._tf_buffer = tf2_ros.Buffer()
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer)
-        # self.base_frame_id = rospy.get_param("~base_frame_id", "base_footprint")
         self.base_frame_id = rospy.get_param("~base_frame_id", "base_link")
         
         self.pub = self.advertise('~output/boxes', BoundingBoxArray, queue_size=1)
@@ -139,7 +138,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 v_base = pykdl_transform_base_to_camera * PyKDL.Vector(*wrist_pose) \
                          - pykdl_transform_base_to_camera * PyKDL.Vector(*elbow_pose)
                 v_base = np.array([v_base.x(), v_base.y(), v_base.z()])
-                v_norm = vector_norm(v_base)
+                v_norm = np.linalg.norm(v_base)
                 v_base = normalize_vector(v_base)
 
                 rospy.loginfo("{}, {}, {}".format(*v_base))
@@ -149,7 +148,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 # vec_v_base = normalize_vector(vec_v_base)
                 # rospy.loginfo("vec_v_base {}, {}, {}".format(*vec_v_base))
 
-                if abs(v_base[2]) > 0.7 or v_norm < 0.2:
+                if abs(v_base[2]) > 0.7:
                     continue
                 matrix = np.eye(4)
                 matrix[:3, :3] = rotation_matrix_from_axis(v, axes="xz")
