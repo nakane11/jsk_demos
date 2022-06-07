@@ -99,7 +99,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 # wrist_score = person.scores[wrist_index]
                 # rospy.loginfo("[left] elbow:{} wrist:{}".format(elbow_score, wrist_score))
                 # if elbow_score > 0.6 and wrist_score > 0.6:
-                if np.average(scores) > 0.6:
+                if np.average(scores) > 0.45:
                     pose = person.poses[elbow_index]
                     elbow_pose = [pose.position.x,
                                   pose.position.y,
@@ -119,7 +119,7 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
             #     # wrist_score = person.scores[wrist_index]
             #     # rospy.loginfo("[right] elbow:{} wrist:{}".format(elbow_score, wrist_score))
             #     # if elbow_score > 0.6 and wrist_score > 0.6:
-                if np.average(scores) > 0.6:
+                if np.average(scores) > 0.45:
                     pose = person.poses[elbow_index]
                     elbow_pose = [pose.position.x,
                                   pose.position.y,
@@ -141,14 +141,15 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 v_norm = np.linalg.norm(v_base)
                 v_base = normalize_vector(v_base)
 
-                rospy.loginfo("{}, {}, {}".format(*v_base))
+                rospy.loginfo("v_base:{}, {}, {}".format(*v_base))
                 rospy.loginfo("norm:{}".format(v_norm))
+                
                 # vec_v_base = pykdl_transform_base_to_camera.M * PyKDL.Vector(*(wrist_pose - elbow_pose))
                 # vec_v_base = np.array([vec_v_base.x(), vec_v_base.y(),vec_v_base.z()])
                 # vec_v_base = normalize_vector(vec_v_base)
                 # rospy.loginfo("vec_v_base {}, {}, {}".format(*vec_v_base))
 
-                if abs(v_base[2]) > 0.7:
+                if abs(v_base[2]) > 0.7 and v_norm > 0.17:
                     continue
                 matrix = np.eye(4)
                 matrix[:3, :3] = rotation_matrix_from_axis(v, axes="xz")
@@ -182,9 +183,9 @@ class ArmPoseToBoxes(ConnectionBasedTransport):
                 box_msg.dimensions.z = 0.1
                 boxes_msg.boxes.append(box_msg)
 
-                self.pub.publish(boxes_msg)
-                self.pose_pub.publish(pose_array_msg)
-
+            self.pub.publish(boxes_msg)
+            self.pose_pub.publish(pose_array_msg)
+                
 
 if __name__ == '__main__':
     rospy.init_node('arm_pose_to_boxes')
