@@ -9,8 +9,9 @@
     <arg name="continuous" default="true" />
   </include>
 
-  <node pkg="follow_waypoints" type="follow_waypoints" name="follow_waypoints" output="screen" clear_params="true">
+  <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
     <param name="goal_frame_id" value="map"/>
+    <param name="odom_frame_id" value="odom_combined" />
     <param name="addpose_topic" value="$(arg addpose_topic)"/>
     <param name="posearray_topic" value="$(arg posearray_topic)"/>
     <param name="waypoint_distance_tolerance" value="0.3"/>
