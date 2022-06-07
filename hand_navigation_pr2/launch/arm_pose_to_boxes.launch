@@ -2,8 +2,8 @@
   
   <arg name="gui" value="true" />
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
-  <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
-  <arg name="input_cloud" value="/kinect_head/depth_registered/points" />
+  <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" />
+  <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/half/points" /> -->
   <arg name="manager_name" default="hand_navigation_pr2_manager" />
   <arg name="manager" default="/$(arg manager_name)" />
 
@@ -52,19 +52,19 @@
     </rosparam>
   </node>
 
-  <node name="extract_indices"
-        pkg="nodelet" type="nodelet"
-        args="load jsk_pcl/ExtractIndices $(arg manager)"
-        clear_params="true">
-    <remap from="~input" to="$(arg input_cloud)" />
-    <remap from="~indices" to="attention_clipper/output/point_indices" />
-    <remap from="~output" to="/attention_cloud" />
-    <rosparam>
-      keep_organized: true
-      approximate_sync: true
-      queue_size: 100
-    </rosparam>
-  </node>
+  <!-- <node name="extract_indices" -->
+  <!--       pkg="nodelet" type="nodelet" -->
+  <!--       args="load jsk_pcl/ExtractIndices $(arg manager)" -->
+  <!--       clear_params="true"> -->
+  <!--   <remap from="~input" to="$(arg input_cloud)" /> -->
+  <!--   <remap from="~indices" to="attention_clipper/output/point_indices" /> -->
+  <!--   <remap from="~output" to="/attention_cloud" /> -->
+  <!--   <rosparam> -->
+  <!--     keep_organized: true -->
+  <!--     approximate_sync: true -->
+  <!--     queue_size: 100 -->
+  <!--   </rosparam> -->
+  <!-- </node> -->
 
   <node name="cluster_point_indices_decomposer"
         pkg="nodelet" type="nodelet"
@@ -80,7 +80,7 @@
     </rosparam>
   </node>
   
-  <node pkg="roseus" type="roseus" name="look_at" output="screen"
+  <node pkg="roseus" type="roseus" name="look_at" 
         args="$(find hand_navigation_pr2)/euslisp/look-at-pointed-direction.l"  />
   
   <group if="$(arg gui)" >
