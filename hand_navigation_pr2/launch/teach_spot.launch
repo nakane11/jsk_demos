@@ -14,7 +14,8 @@
     <param name="odom_frame_id" value="odom_combined" />
     <param name="addpose_topic" value="$(arg addpose_topic)"/>
     <param name="posearray_topic" value="$(arg posearray_topic)"/>
-    <param name="waypoint_distance_tolerance" value="0.3"/>
+    <param name="waypoint_distance_tolerance" value="0.5"/>
+    <!-- <param name="timeout" value="10"/> -->
   </node>
   
   <!-- <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen" -->

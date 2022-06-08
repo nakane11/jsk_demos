@@ -34,8 +34,7 @@
 
   <node name="speech_recognition"
         pkg="ros_speech_recognition" type="speech_recognition_node.py"
-        respawn="true"
-        output="screen">
+        respawn="true" >
     <rosparam subst_value="true">
       audio_topic: $(arg audio_topic)
       voice_topic: $(arg voice_topic)
