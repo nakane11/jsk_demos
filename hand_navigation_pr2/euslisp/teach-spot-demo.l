@@ -156,7 +156,7 @@
 
                (cond
                  ((substringp "リセット" text)
-                  (setq spot-graph nil)
+                  (setq spot-graph (instance graph :init))
                   (setq prev-n nil)
                   (setq spot-list nil))
 
