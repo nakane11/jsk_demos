@@ -3,55 +3,12 @@
 (ros::roseus-add-msgs "follow_waypoints")
 ;; (load "package://pr2eus/pr2-interface.l")
 (load "package://fetcheus/fetch-interface.l")
-(load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
+;; (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 (load "package://hand_navigation_pr2/euslisp/get-coords-diff.l")
+(load "package://hand_navigation_pr2/euslisp/marker.l")
 (ros::roseus "teach_spot")
 ;; (pr2-init nil)
 (fetch-init nil)
-
-(defvar *pub-spots-marker-topic* "/teached_spots_marker_array")
-
-(defun make-pin-marker (name coords header id
-                        &key (height 1800) (radius 100) (alpha 1.0) (lifetime 15) color)
-  "Make pin marker messages for coordinates.
-   if :color is set, pin color is set, otherwise random color is set automatically."
-  (let ((cyl (make-cylinder radius (* radius 0.7) :segments 9 :pos (float-vector 0 0 (/ height 3))))
-        (cub (make-cube (/ radius 3) (/ radius 3) (/ height 2.5) :pos (float-vector 0 0 (/ height 6))))
-        (cds (send coords :copy-worldcoords)))
-
-    ;; transform pin
-    (send cyl :rotate -pi/2 :y)
-    (send cyl :transform cds :world)
-    (send cub :transform cds :world)
-
-    ;; generate random color
-    (unless color
-      (setq color (scale (/ 1.0 255.0) (apply #'float-vector (color-category20 id)))))
-
-    ;; make pin
-    (list
-     (cylinder->marker-msg cyl header :color color :ns "pin_head" :lifetime lifetime :id id :alpha alpha)
-     (cube->marker-msg cub header :color color :ns "pin_body" :lifetime lifetime :id id :alpha alpha)
-     (text->marker-msg name (send cds :translate (float-vector 0 0 (/ height 6)))
-                       header :ns "pin_label" :lifetime lifetime :id id))))
-
-(defun publish-pin-marker-array (spots header &key (alpha 0.8) (lifetime 15))
-  "Publish marker array from spots.
-   'spots' is list of cons (name . coords) for each spots."
-  (unless (ros::get-topic-publisher *pub-spots-marker-topic*)
-    (ros::advertise *pub-spots-marker-topic* visualization_msgs::MarkerArray 5)
-    (unix:sleep 1))
-  (let ((id 0))
-    (ros::publish
-     *pub-spots-marker-topic*
-     (instance visualization_msgs::MarkerArray :init
-               :markers
-               (flatten
-                (mapcar #'(lambda (spot)
-                            (make-pin-marker (car spot) (cdr spot)
-                                             header (incf id)
-                                             :alpha alpha
-                                             :lifetime lifetime)) spots))))))
 
 (defun my-string-left-trim (bag str)
   (declare (string str))
@@ -90,8 +47,7 @@
      (setq label 0)
      (setq mode :record)
      (setq spot-graph (instance graph :init))
-     ;; (setq sol (instance breadth-first-graph-search-solver :init))
-     (setq sol (instance depth-first-graph-search-solver :init))
+     (setq sol (instance breadth-first-graph-search-solver :init))
      (setq client (instance ros::simple-action-client :init "waypoints_action" follow_waypoints::WaypointsAction))
      (send client :wait-for-server)
      (ros::subscribe "/Tablet/voice" speech_recognition_msgs::SpeechRecognitionCandidates #'send self :voice-cb)
@@ -137,20 +93,20 @@
              (when (null spot-coords)
                (return-from :add-spot))
              (dolist (i (send spot-graph :nodes)) ;; if node exists nearby, connect to prev-n instead of adding new one
-               (setq diff (abs (get-diff-position spot-coords (send i :get :coords))))
-               (when  (< diff 0.3)
-                 (ros::ros-info "spot-coords: ~A" spot-coords)
-                 (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
-                 (unless (and (member (send i :name) spot-list :test #'string-equal) name)
-                   (ros::ros-info "diff: ~A" diff)
-                   (send spot-graph :add-arc-from-to prev-n i :both t)
-                   (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name))
-                   (when name
-                     (ros::ros-info "rename ~A to ~A" (send i :name) name) ;;rename
-                     (send i :name name))
-                   ;; (send self :check-cross-line prev-n i)
-                   (setq prev-n i)
-                   (return-from :add-spot))))
+               (let ((diff (abs (get-diff-position spot-coords (send i :get :coords)))))
+                 (when  (< diff 0.2)
+                   (ros::ros-info "spot-coords: ~A" spot-coords)
+                   (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
+                   (unless (and (member (send i :name) spot-list :test #'string-equal) name)
+                     (ros::ros-info "diff: ~A" diff)
+                     (send spot-graph :add-arc-from-to prev-n i :both t)
+                     (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name))
+                     (when name
+                       (ros::ros-info "rename ~A to ~A" (send i :name) name) ;;rename
+                       (send i :name name))
+                     ;; (send self :check-cross-line prev-n i)
+                     (setq prev-n i)
+                     (return-from :add-spot)))))
 
              (let (n)
                (setq n (instance node :init (or name (format nil "~A" label))))
@@ -161,8 +117,17 @@
 
                (when prev-n
                  (send spot-graph :add-arc-from-to prev-n n :both t)
+                 (ros::ros-info "diff ~A"(abs (get-diff-position (send n :get :coords) (send prev-n :get :coords))))
                  (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send n :name)))
-               (setq prev-n n)))
+               (setq prev-n n)
+               
+               ;; (dolist (i (send spot-graph :nodes))
+               ;;   (unless (string-equal (send i :name) (send prev-n :name))
+               ;;     (setq diff (abs (get-diff-position (send prev-n :get :coords) (send i :get :coords))))
+               ;;     (when  (< diff 0.3)
+               ;;       (send spot-graph :add-arc-from-to prev-n i :both t)
+               ;;       (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name)))))
+               ))
 
   (:output-graph ()
               ;; (send *ri* :speak-jp "グラフを出力します")
@@ -252,7 +217,7 @@
                       (ros::ros-info "spot-name: ~A" spot-name)
                       (push spot-name spot-list)
                       (unless (null prev-n)
-                        (when (< (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.3)
+                        (when (< (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.2)
                           (unless (member (send prev-n :name) spot-list :test #'string-equal)
                             (ros::ros-info (format nil "rename ~A to ~A" (send prev-n :name) spot-name))
                             (send prev-n :put :coords spot-coords)
@@ -298,8 +263,10 @@
         (let* (spots (stamp (ros::time-now)) (header (instance std_msgs::header :init :stamp stamp :frame_id "/map")))
           (dolist (i (send spot-graph :nodes))          
             (push (cons (send i :name) (send i :get :coords)) spots))
-          (publish-pin-marker-array spots header))
-        )))
+          (publish-pin-marker-array spots header)
+          (publish-arcs-marker-array (send spot-graph :nodes) header))
+          
+        ))
 
 (setq *ts* (instance teach-spot :init))
 (ros::rate 20)
