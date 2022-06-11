@@ -4,7 +4,6 @@
 ;; (load "package://pr2eus/pr2-interface.l")
 (load "package://fetcheus/fetch-interface.l")
 ;; (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
-(load "package://hand_navigation_pr2/euslisp/get-coords-diff.l")
 (load "package://hand_navigation_pr2/euslisp/marker.l")
 (ros::roseus "teach_spot")
 ;; (pr2-init nil)
@@ -23,6 +22,9 @@
   (if (string= (subseq str (- (length str) (length bag))) bag)
       (subseq str 0 (- (length str) (length bag)))
       nil))
+
+(defun coords-difference (a b)
+  (/ (norm (send (send a :transformation b) :pos)) 1000))
 
 ;; (defun cross-line (a b c d)
 ;;   (let ((x1 (elt a 0)) (x2 (elt b 0)) (x3 (elt c 0)) (x4 (elt d 0))
@@ -66,7 +68,7 @@
   (:get-diff (i j)
              (setq i-node (send spot-graph :node i))
              (setq j-node (send spot-graph :node j))
-             (get-diff-position (send i-node :get :coords) (send j-node :get :coords)))
+             (coords-difference (send i-node :get :coords) (send j-node :get :coords)))
 
   (:spot-cb (msg)
             (if msg
@@ -93,8 +95,8 @@
              (when (null spot-coords)
                (return-from :add-spot))
              (dolist (i (send spot-graph :nodes)) ;; if node exists nearby, connect to prev-n instead of adding new one
-               (let ((diff (abs (get-diff-position spot-coords (send i :get :coords)))))
-                 (when  (< diff 0.2)
+               (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
+                 (when  (< diff 0.30)
                    (ros::ros-info "spot-coords: ~A" spot-coords)
                    (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
                    (unless (and (member (send i :name) spot-list :test #'string-equal) name)
@@ -117,16 +119,10 @@
 
                (when prev-n
                  (send spot-graph :add-arc-from-to prev-n n :both t)
-                 (ros::ros-info "diff ~A"(abs (get-diff-position (send n :get :coords) (send prev-n :get :coords))))
+                 (ros::ros-info "diff ~A"(abs (coords-difference (send n :get :coords) (send prev-n :get :coords))))
                  (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send n :name)))
                (setq prev-n n)
                
-               ;; (dolist (i (send spot-graph :nodes))
-               ;;   (unless (string-equal (send i :name) (send prev-n :name))
-               ;;     (setq diff (abs (get-diff-position (send prev-n :get :coords) (send i :get :coords))))
-               ;;     (when  (< diff 0.3)
-               ;;       (send spot-graph :add-arc-from-to prev-n i :both t)
-               ;;       (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name)))))
                ))
 
   (:output-graph ()
@@ -147,7 +143,7 @@
                   (when goal-n
                     (let ((spot-coords spot-msg) start-n)
                       ;; (dolist (n (send spot-graph :nodes)) ;; if node exists nearby
-                      ;;   (when (< (abs (get-diff-position spot-coords (send n :get :coords))) 0.3)
+                      ;;   (when (< (abs (coords-difference spot-coords (send n :get :coords))) 0.3)
                       ;;     (setq start-n n)
                       ;;     (return)))
                       (setq start-n prev-n)
@@ -196,7 +192,7 @@
                   (when goal-n
                     (let ((spot-coords spot-msg) start-n)
                       (dolist (n (send spot-graph :nodes))
-                        (when (< (abs (get-diff-position spot-coords (send n :get :coords))) 0.4)
+                        (when (< (abs (coords-difference spot-coords (send n :get :coords))) 0.4)
                           (setq start-n n)
                           (return)))
                       (ros::ros-info "start-node: ~A" (send start-n :name))
@@ -217,7 +213,7 @@
                       (ros::ros-info "spot-name: ~A" spot-name)
                       (push spot-name spot-list)
                       (unless (null prev-n)
-                        (when (< (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.2)
+                        (when (< (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.25)
                           (unless (member (send prev-n :name) spot-list :test #'string-equal)
                             (ros::ros-info (format nil "rename ~A to ~A" (send prev-n :name) spot-name))
                             (send prev-n :put :coords spot-coords)
@@ -243,7 +239,7 @@
                (when (null prev-n)
                  (send self :add-spot spot-coords))
                (unless (null prev-n)
-                 (when (> (abs (get-diff-position spot-coords (send prev-n :get :coords))) 0.8)
+                 (when (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.7)
                    (send self :add-spot spot-coords)))
                )))
 
