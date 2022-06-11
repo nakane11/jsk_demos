@@ -23,6 +23,14 @@
       (subseq str 0 (- (length str) (length bag)))
       nil))
 
+(defun counter-clockwise-angle-between-vectors (v1 v2 normal-vector)
+  (let* ((det (v. normal-vector (v* v1 v2)))
+         (dot (v. v1 v2))
+         (angle (+ (atan2 (- det) (- dot)) pi)))
+    (when (eps= angle 2pi)
+      (setq angle 0.0))
+    angle))
+
 (defun coords-difference (a b)
   (/ (norm (send (send a :transformation b) :pos)) 1000))
 
@@ -88,27 +96,37 @@
   ;;                                         (elt (send (send (send ar :to) :get :coords) :pos) 1))))
   ;;                            (setq ret (cross-line a b c d))
   ;;                            (when ret
+  ;;                              (setq new (instance node :init (format nil "~A" label)))
+  ;;                              (incf label)
+  ;;                              (send spot-graph :add-node new)
+  ;;                              (send spot-graph :add-arc-from-to u new :both t)
+  ;;                              (send spot-graph :add-arc-from-to v new :both t)
+  ;;                              (send spot-graph :add-arc-from-to n new :both t)
+  ;;                              (send spot-graph :add-arc-from-to (send ar :to) new :both t)
+  ;;                              (send u :unlink v)
+  ;;                              (send v :unlink u)
+  ;;                              (send (send ar :to) :unlink n)))))))
                                
-
-
   (:add-spot (spot-coords &optional name)
              (when (null spot-coords)
                (return-from :add-spot))
              (dolist (i (send spot-graph :nodes)) ;; if node exists nearby, connect to prev-n instead of adding new one
-               (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
-                 (when  (< diff 0.30)
-                   (ros::ros-info "spot-coords: ~A" spot-coords)
-                   (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
-                   (unless (and (member (send i :name) spot-list :test #'string-equal) name)
-                     (ros::ros-info "diff: ~A" diff)
-                     (send spot-graph :add-arc-from-to prev-n i :both t)
-                     (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name))
-                     (when name
-                       (ros::ros-info "rename ~A to ~A" (send i :name) name) ;;rename
-                       (send i :name name))
-                     ;; (send self :check-cross-line prev-n i)
-                     (setq prev-n i)
-                     (return-from :add-spot)))))
+               (unless (string= (send i :name) (send prev-n :name))
+                 (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
+                   (when  (< diff 0.30)
+                     (ros::ros-info "spot-coords: ~A" spot-coords)
+                     (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
+                     (unless (and (member (send i :name) spot-list :test #'string-equal) name)
+                       (ros::ros-info "diff: ~A" diff)
+                       (when prev-n
+                         (send spot-graph :add-arc-from-to prev-n i :both t)
+                         (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name)))
+                       (when name
+                         (ros::ros-info "rename ~A to ~A" (send i :name) name) ;;rename
+                         (send i :name name))
+                       ;; (send self :check-cross-line prev-n i)
+                       (setq prev-n i)
+                       (return-from :add-spot))))))
 
              (let (n)
                (setq n (instance node :init (or name (format nil "~A" label))))
@@ -119,7 +137,8 @@
 
                (when prev-n
                  (send spot-graph :add-arc-from-to prev-n n :both t)
-                 (ros::ros-info "diff ~A"(abs (coords-difference (send n :get :coords) (send prev-n :get :coords))))
+                 ;; (send self :check-cross-line prev-n n)
+                 ;; (ros::ros-info "diff ~A"(abs (coords-difference (send n :get :coords) (send prev-n :get :coords))))
                  (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send n :name)))
                (setq prev-n n)
                
@@ -128,7 +147,7 @@
   (:output-graph ()
               ;; (send *ri* :speak-jp "グラフを出力します")
               (ros::ros-info "graph")
-              (send spot-graph :write-to-file (format nil "~A" (send (ros::time-now) :to-nsec) path "output" "jpg")))
+              (send spot-graph :write-to-dot (format nil "~A" (send (ros::time-now) :to-nsec) path)))
 
   (:voice-cb (msg)
              (let ((text (elt (send msg :transcript) 0))
@@ -136,6 +155,11 @@
                (ros::ros-info "text:~A" text)
 
                (cond
+                 ((substringp "リセット" text)
+                  (setq spot-graph nil)
+                  (setq prev-n nil)
+                  (setq spot-list nil))
+
                  ((substringp "に行こう" text)
                   (setq goal-name (my-string-right-trim "に行こう" text))
                   (setq goal-n (send spot-graph :node goal-name))
@@ -174,7 +198,9 @@
                           (ros::ros-info (format nil "[result]~A" (send (send client :get-result) :result)))
 
                           ;; (send *ri* :speak-jp (format nil "~Aに到着しました" goal))
-                          (setq prev-n goal-n)
+                          (if (eq (send (send client :get-result) :result) 4)
+                              (setq prev-n goal-n)
+                              (setq prev-n nil))
                           (setq goal-n nil)
                           (setq mode :record)
                           
@@ -239,7 +265,10 @@
                (when (null prev-n)
                  (send self :add-spot spot-coords))
                (unless (null prev-n)
-                 (when (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.7)
+                 (setq prev-v (send (send prev-n :get :coords) :rotate-vector #f(1 0 0)))
+                 (setq v (send spot-coords :rotate-vector #f(1 0 0)))
+                 (setq angle (counter-clockwise-angle-between-vectors prev-v v #f(0 0 1)))
+                 (when (or (and (> (abs (rad2deg angle)) 30) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.3)) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.8)) 
                    (send self :add-spot spot-coords)))
                )))
 
