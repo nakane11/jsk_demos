@@ -1,0 +1,32 @@
+<launch>
+  <env name="ROSCONSOLE_FORMAT" value="[${severity}][${thread}][${node}/${function}:${line}]: ${message}"/>
+  <arg name="gui" value="true" />
+  <arg name="addpose_topic" default="/follow_waypoints/initialpose"/>
+  <arg name="posearray_topic" default="/waypoints"/>
+  
+  <include file="$(find hand_navigation_pr2)/launch/speech_recognition.launch" >
+    <arg name="language" default="ja-JP" />
+    <arg name="continuous" default="true" />
+  </include>
+
+  <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
+    <param name="base_frame_id" value="base_link"/>
+    <param name="goal_frame_id" value="map"/>
+    <param name="odom_frame_id" value="odom_combined" />
+    <param name="addpose_topic" value="$(arg addpose_topic)"/>
+    <param name="posearray_topic" value="$(arg posearray_topic)"/>
+    <param name="waypoint_distance_tolerance" value="0.5"/>
+    <param name="timeout" value="30"/>
+  </node>
+  
+  <!-- <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen" -->
+  <!--       args="$(find hand_navigation_pr2)/euslisp/teach-spot-demo.l"  /> -->
+
+  <group if="$(arg gui)" >
+    <node name="$(anon rviz)"
+          pkg="rviz" type="rviz"
+          args="-d $(find hand_navigation_pr2)/launch/config/teach_spot_fetch.rviz" >
+    </node>
+  </group>
+  
+</launch>

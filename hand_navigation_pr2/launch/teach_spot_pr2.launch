@@ -10,6 +10,7 @@
   </include>
 
   <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
+    <param name="base_frame_id" value="base_footprint"/>
     <param name="goal_frame_id" value="map"/>
     <param name="odom_frame_id" value="odom_combined" />
     <param name="addpose_topic" value="$(arg addpose_topic)"/>
@@ -24,7 +25,7 @@
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"
           pkg="rviz" type="rviz"
-          args="-d $(find hand_navigation_pr2)/launch/config/teach_spot.rviz" >
+          args="-d $(find hand_navigation_pr2)/launch/config/teach_spot_pr2.rviz" >
     </node>
   </group>
   
