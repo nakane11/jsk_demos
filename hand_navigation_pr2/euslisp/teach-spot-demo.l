@@ -1,13 +1,13 @@
 (ros::roseus-add-msgs "speech_recognition_msgs")
 (ros::roseus-add-msgs "geometry_msgs")
 (ros::roseus-add-msgs "follow_waypoints")
-;; (load "package://pr2eus/pr2-interface.l")
-(load "package://fetcheus/fetch-interface.l")
+(load "package://pr2eus/pr2-interface.l")
+;; (load "package://fetcheus/fetch-interface.l")
 ;; (load "package://hand_navigation_pr2/euslisp/give-hand-pose.l")
 (load "package://hand_navigation_pr2/euslisp/marker.l")
 (ros::roseus "teach_spot")
-;; (pr2-init nil)
-(fetch-init nil)
+(pr2-init nil)
+;; (fetch-init nil)
 
 (defun my-string-left-trim (bag str)
   (declare (string str))
@@ -60,7 +60,7 @@
      (setq sol (instance breadth-first-graph-search-solver :init))
      (setq client (instance ros::simple-action-client :init "waypoints_action" follow_waypoints::WaypointsAction))
      (send client :wait-for-server)
-     (ros::subscribe "/Tablet/voice" speech_recognition_msgs::SpeechRecognitionCandidates #'send self :voice-cb)
+     (ros::subscribe "/Tablet/voice_roman" speech_recognition_msgs::SpeechRecognitionCandidates #'send self :voice-cb)
      (ros::subscribe "/amcl_pose" geometry_msgs::posewithcovariancestamped #'send self :spot-cb)
      (ros::advertise "/follow_waypoints/initialpose" geometry_msgs::posewithcovariancestamped 1)
      (ros::advertise "/path_reset" std_msgs::empty 1)
@@ -77,6 +77,9 @@
              (setq i-node (send spot-graph :node i))
              (setq j-node (send spot-graph :node j))
              (coords-difference (send i-node :get :coords) (send j-node :get :coords)))
+
+  (:feedback-cb (msg)
+                (ros::ros-info (format nil "[feedback]~A" (send (send msg :feedback) :text))))
 
   (:spot-cb (msg)
             (if msg
@@ -114,8 +117,6 @@
                (unless (string= (send i :name) (send prev-n :name))
                  (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
                    (when  (< diff 0.30)
-                     (ros::ros-info "spot-coords: ~A" spot-coords)
-                     (ros::ros-info "~A-coords: ~A" (send i :name) (send i :get :coords))
                      (unless (and (member (send i :name) spot-list :test #'string-equal) name)
                        (ros::ros-info "diff: ~A" diff)
                        (when prev-n
@@ -138,7 +139,6 @@
                (when prev-n
                  (send spot-graph :add-arc-from-to prev-n n :both t)
                  ;; (send self :check-cross-line prev-n n)
-                 ;; (ros::ros-info "diff ~A"(abs (coords-difference (send n :get :coords) (send prev-n :get :coords))))
                  (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send n :name)))
                (setq prev-n n)
                
@@ -147,7 +147,7 @@
   (:output-graph ()
               ;; (send *ri* :speak-jp "グラフを出力します")
               (ros::ros-info "graph")
-              (send spot-graph :write-to-dot (format nil "~A" (send (ros::time-now) :to-nsec) path)))
+              (send spot-graph :write-to-file (format nil "~A" (send (ros::time-now) :to-nsec) path "output" "jpg")))
 
   (:voice-cb (msg)
              (let ((text (elt (send msg :transcript) 0))
@@ -155,13 +155,13 @@
                (ros::ros-info "text:~A" text)
 
                (cond
-                 ((substringp "リセット" text)
+                 ((substringp "risetto" text)
                   (setq spot-graph (instance graph :init))
                   (setq prev-n nil)
                   (setq spot-list nil))
 
-                 ((substringp "に行こう" text)
-                  (setq goal-name (my-string-right-trim "に行こう" text))
+                 ((substringp "niikou" text)
+                  (setq goal-name (my-string-right-trim "niikou" text))
                   (setq goal-n (send spot-graph :node goal-name))
                   (ros::ros-info "goal-node: ~A" (send goal-n :name))
                   (when goal-n
@@ -197,18 +197,19 @@
                           (send client :wait-for-result)
                           (ros::ros-info (format nil "[result]~A" (send (send client :get-result) :result)))
 
-                          ;; (send *ri* :speak-jp (format nil "~Aに到着しました" goal))
                           (if (eq (send (send client :get-result) :result) 4)
-                              (setq prev-n goal-n)
-                              (setq prev-n nil))
+                              (progn
+                                (setq prev-n goal-n)
+                                (send *ri* :speak-jp (format nil "~Aに到着しました" goal-name)))
+                              (progn
+                                (send *ri* :speak-jp (format nil "失敗しました"))
+                                (setq prev-n nil)))
                           (setq goal-n nil)
                           (setq mode :record)
-                          
-                          (ros::ros-info "4")
                           (return-from :voice-cb)))))
 
                   (ros::ros-info "solver failed")
-                  ;; (send *ri* :speak-jp "連れて行ってください")
+                  (send *ri* :speak-jp "道がわかりません")
                   )
 
                  ((substringp "の行き方を教えて" text)
@@ -217,10 +218,7 @@
                   (ros::ros-info "goal-node: ~A" (send goal-n :name))
                   (when goal-n
                     (let ((spot-coords spot-msg) start-n)
-                      (dolist (n (send spot-graph :nodes))
-                        (when (< (abs (coords-difference spot-coords (send n :get :coords))) 0.4)
-                          (setq start-n n)
-                          (return)))
+                      (setq start-n prev-n)
                       (ros::ros-info "start-node: ~A" (send start-n :name))
                       (when start-n
                         (setq path nil)
@@ -232,12 +230,13 @@
                           (return-from :voice-cb))))
                     (ros::ros-info "solver failed")))
                  
-                 ((and (substringp "ここが" text) (substringp "だよ" text))
+                 ((and (substringp "kokoga" text) (substringp "dayo" text))
                   (let (spot-name (spot-coords spot-msg))
-                    (setq spot-name (my-string-left-trim "ここが" (my-string-right-trim "だよ" text)))
+                    (setq spot-name (my-string-left-trim "kokoga" (my-string-right-trim "dayo" text)))
                     (unless (null spot-coords)
                       (ros::ros-info "spot-name: ~A" spot-name)
                       (push spot-name spot-list)
+                      (send *ri* :speak-jp "はい")
                       (unless (null prev-n)
                         (when (< (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.25)
                           (unless (member (send prev-n :name) spot-list :test #'string-equal)
@@ -268,7 +267,7 @@
                  (setq prev-v (send (send prev-n :get :coords) :rotate-vector #f(1 0 0)))
                  (setq v (send spot-coords :rotate-vector #f(1 0 0)))
                  (setq angle (counter-clockwise-angle-between-vectors prev-v v #f(0 0 1)))
-                 (when (or (and (> (abs (rad2deg angle)) 30) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.3)) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.8)) 
+                 (when (or (and (> (abs (rad2deg angle)) 40) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.3)) (> (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.8)) 
                    (send self :add-spot spot-coords)))
                )))
 
