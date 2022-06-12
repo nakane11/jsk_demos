@@ -26,9 +26,9 @@ class SpeechToRoman(ConnectionBasedTransport):
         self.sub.unregister()
 
     def _cb(self, msg):
-        text = msg.transcript[0]
-        roman_text = self.converter.do(text).replace(' ', '')
-        self.pub.publish(SpeechRecognitionCandidates(transcript = [roman_text]))
+        text = msg.transcript[0].replace(' ', '')
+        roman_text = self.converter.do(text)
+        self.pub.publish(SpeechRecognitionCandidates(transcript = [text, roman_text]))
         rospy.loginfo("{}[{}]".format(text, roman_text))
 
 if __name__ == '__main__':

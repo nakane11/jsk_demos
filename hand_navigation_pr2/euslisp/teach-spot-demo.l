@@ -117,21 +117,25 @@
                (unless (string= (send i :name) (send prev-n :name))
                  (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
                    (when  (< diff 0.30)
-                     (unless (and (member (send i :name) spot-list :test #'string-equal) name)
+                     (unless (and (send i :get :name-jp) name)
                        (ros::ros-info "diff: ~A" diff)
                        (when prev-n
                          (send spot-graph :add-arc-from-to prev-n i :both t)
                          (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send i :name)))
                        (when name
-                         (ros::ros-info "rename ~A to ~A" (send i :name) name) ;;rename
-                         (send i :name name))
+                         (ros::ros-info "rename ~A to ~A" (send i :name) (car name)) ;;rename
+                         (send i :name (car name))
+                         (send i :put :name-jp (cadr name)))
                        ;; (send self :check-cross-line prev-n i)
                        (setq prev-n i)
                        (return-from :add-spot))))))
 
              (let (n)
-               (setq n (instance node :init (or name (format nil "~A" label))))
-               (unless name (incf label))
+               (setq n (instance node :init (or (if name (car name) nil)
+                                                (format nil "~A" label))))
+               (if name
+                   (send n :put :name-jp (cadr name))
+                   (incf label))
                (send n :put :coords spot-coords)
                (ros::ros-info "node ~A ~% coords:~A" (send n :name) (send n :get :coords))
                (send spot-graph :add-node n)
@@ -141,7 +145,6 @@
                  ;; (send self :check-cross-line prev-n n)
                  (ros::ros-info "arc from ~A to ~A" (send prev-n :name) (send n :name)))
                (setq prev-n n)
-               
                ))
 
   (:output-graph ()
@@ -151,17 +154,18 @@
 
   (:voice-cb (msg)
              (let ((text (elt (send msg :transcript) 0))
+                   (roman-text (elt (send msg :transcript) 1))
                    (seq-count 0))
                (ros::ros-info "text:~A" text)
 
                (cond
-                 ((substringp "risetto" text)
+                 ((substringp "リセット" text)
                   (setq spot-graph (instance graph :init))
                   (setq prev-n nil)
                   (setq spot-list nil))
 
-                 ((substringp "niikou" text)
-                  (setq goal-name (my-string-right-trim "niikou" text))
+                 ((substringp "に行こう" text)
+                  (setq goal-name (my-string-right-trim "niikou" roman-text))
                   (setq goal-n (send spot-graph :node goal-name))
                   (ros::ros-info "goal-node: ~A" (send goal-n :name))
                   (when goal-n
@@ -230,19 +234,21 @@
                           (return-from :voice-cb))))
                     (ros::ros-info "solver failed")))
                  
-                 ((and (substringp "kokoga" text) (substringp "dayo" text))
+                 ((and (substringp "ここが" text) (substringp "だよ" text))
                   (let (spot-name (spot-coords spot-msg))
-                    (setq spot-name (my-string-left-trim "kokoga" (my-string-right-trim "dayo" text)))
+                    (setq spot-name (cons (my-string-left-trim "kokoga" (my-string-right-trim "dayo" roman-text))
+                                          (my-string-left-trim "ここが" (my-string-right-trim "だよ" text))))
                     (unless (null spot-coords)
-                      (ros::ros-info "spot-name: ~A" spot-name)
-                      (push spot-name spot-list)
+                      (ros::ros-info "spot-name: ~A" (cadr spot-name))
+                      (push (cadr spot-name) spot-list)
                       (send *ri* :speak-jp "はい")
                       (unless (null prev-n)
                         (when (< (abs (coords-difference spot-coords (send prev-n :get :coords))) 0.25)
-                          (unless (member (send prev-n :name) spot-list :test #'string-equal)
-                            (ros::ros-info (format nil "rename ~A to ~A" (send prev-n :name) spot-name))
+                          (unless (send prev-n :get :name-jp)
+                            (ros::ros-info (format nil "rename ~A to ~A" (send prev-n :name) (car spot-name)))
                             (send prev-n :put :coords spot-coords)
-                            (send prev-n :name spot-name)
+                            (send prev-n :name (car spot-name))
+                            (send prev-n :put :name-jp (cadr spot-name))
                             (return-from :voice-cb))))
                       (send self :add-spot spot-coords spot-name))
                     ))
