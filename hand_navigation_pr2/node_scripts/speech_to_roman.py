@@ -11,7 +11,7 @@ class SpeechToRoman(ConnectionBasedTransport):
 
     def __init__(self):
         super(SpeechToRoman, self).__init__()
-        self.pub = self.advertise("~output", String, queue_size=1)
+        self.pub = self.advertise("~output", SpeechRecognitionCandidates, queue_size=1)
 
         self.kks = pykakasi.kakasi()
         self.kks.setMode('J', 'a')
@@ -27,8 +27,8 @@ class SpeechToRoman(ConnectionBasedTransport):
 
     def _cb(self, msg):
         text = msg.transcript[0]
-        roman_text = self.converter.do(text)
-        self.pub.publish(String(data = roman_text))
+        roman_text = self.converter.do(text).replace(' ', '')
+        self.pub.publish(SpeechRecognitionCandidates(transcript = [roman_text]))
         rospy.loginfo("{}[{}]".format(text, roman_text))
 
 if __name__ == '__main__':

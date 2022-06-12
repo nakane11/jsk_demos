@@ -9,6 +9,13 @@
     <arg name="continuous" default="true" />
   </include>
 
+  <include file="$(find virtual_force_drag)/launch/fetch_virtual_force_drag.launch" />
+  
+  <node name="speech_to_roman"
+        pkg="hand_navigation_pr2" type="speech_to_roman.py" >
+    <remap from="~output" to="/Tablet/voice_roman" />
+  </node>
+  
   <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
     <param name="base_frame_id" value="base_link"/>
     <param name="goal_frame_id" value="map"/>
