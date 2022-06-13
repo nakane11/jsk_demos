@@ -5,6 +5,10 @@
   <arg name="addpose_topic" default="/follow_waypoints/initialpose"/>
   <arg name="posearray_topic" default="/waypoints"/>
   
+  <arg name="input_camera_info" value="/kinect_head/rgb/camera_info" />
+  <arg name="input_depth_image" value="/kinect_head/depth_registered/hw_registered/image_rect" />
+  <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" />
+
   <include file="$(find hand_navigation_pr2)/launch/speech_recognition.launch" >
     <arg name="language" default="ja-JP" />
     <arg name="continuous" default="true" />
@@ -17,6 +21,24 @@
   <node name="speech_to_roman"
         pkg="hand_navigation_pr2" type="speech_to_roman.py" >
     <remap from="~output" to="/Tablet/voice_roman" />
+  </node>
+
+  <node name="people_pose_2d_to_3d"
+        pkg="jsk_perception" type="people_pose_2d_to_3d.py"
+        output="screen">
+    <remap from="~input/pose" to="$(arg input_pose_array)" />
+    <remap from="~input/info" to="$(arg input_camera_info)" />
+    <remap from="~input/depth" to="$(arg input_depth_image)" />
+    <rosparam subst_value="true">
+      approximate_sync: true
+      queue_size: 100
+    </rosparam>
+  </node>
+  
+  <node name="people_pose_array_accumulator"
+        pkg="hand_navigation_pr2" type="people_pose_array_accumulator.py" >
+    <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
+    <param name="base_frame_id" value="base_footprint"/>
   </node>
   
   <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
