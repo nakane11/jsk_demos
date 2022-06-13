@@ -117,7 +117,10 @@
   (:add-spot (spot-coords &optional name)
              (when (null spot-coords)
                (return-from :add-spot))
-             (dolist (i (send spot-graph :nodes)) ;; if node exists nearby, connect to prev-n instead of adding new one
+             (dolist (i (set-difference (send spot-graph :nodes)
+                                        (if (null prev-n)
+                                            nil
+                                            (mapcar #'(lambda (n) (cadr n)) (send prev-n :successors)))))
                (unless (string= (send i :name) (send prev-n :name))
                  (let ((diff (abs (coords-difference spot-coords (send i :get :coords)))))
                    (when  (< diff 0.40)
@@ -183,17 +186,14 @@
                       (ros::ros-info "path0:~A" (length path))
                       (when start-n
                         (setq path nil)
-                        (ros::ros-info "path1:~A" (length path))
                         ;; (setq path (send sol :solve-by-name spot-graph (send start-n :name) goal-name))
                         (send spot-graph :start-state start-n)
                         (send spot-graph :goal-state goal-n)
                         (setq path (send sol :solve spot-graph))
-                        (ros::ros-info "path2:~A" (length path))
                         (when path
                           (setq mode :navigation)
                           (ros::publish "/path_reset" (instance std_msgs::empty :init))
                           (ros::duration-sleep 0.5)
-                          (ros::ros-info "path3:~A" (length path))
                           (dolist (i path)
                             (ros::ros-info "publish waypoint ~A" (send (send i :state) :name))
                             (ros::sleep)
