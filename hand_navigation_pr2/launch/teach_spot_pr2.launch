@@ -29,8 +29,10 @@
     <param name="timeout" value="30"/>
   </node>
 
-  <!-- <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen" -->
-  <!--       args="$(find hand_navigation_pr2)/euslisp/teach-spot-demo.l"  /> -->
+  <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen"
+        args="$(find hand_navigation_pr2)/euslisp/teach-spot-demo.l" >
+    <param name="robot" value="pr2"/>
+  </node>
 
   <group if="$(arg gui)" >
     <node name="$(anon rviz)"
