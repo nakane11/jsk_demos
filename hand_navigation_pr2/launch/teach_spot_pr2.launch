@@ -1,6 +1,7 @@
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}][${thread}][${node}/${function}:${line}]: ${message}"/>
-  <arg name="gui" value="true" />
+  <arg name="gui" default="true" />
+  <arg name="pull_arm" default="true" />
   <arg name="addpose_topic" default="/follow_waypoints/initialpose"/>
   <arg name="posearray_topic" default="/waypoints"/>
   
@@ -9,7 +10,9 @@
     <arg name="continuous" default="true" />
   </include>
 
-  <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" />
+  <group if="$(arg pull_arm)" >
+    <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" />
+  </group>
   
   <node name="speech_to_roman"
         pkg="hand_navigation_pr2" type="speech_to_roman.py" >
@@ -25,7 +28,7 @@
     <param name="waypoint_distance_tolerance" value="0.5"/>
     <param name="timeout" value="30"/>
   </node>
-  
+
   <!-- <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen" -->
   <!--       args="$(find hand_navigation_pr2)/euslisp/teach-spot-demo.l"  /> -->
 
