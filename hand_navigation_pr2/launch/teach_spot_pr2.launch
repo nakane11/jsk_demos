@@ -1,7 +1,9 @@
 <launch>
   <env name="ROSCONSOLE_FORMAT" value="[${severity}][${thread}][${node}/${function}:${line}]: ${message}"/>
   <arg name="gui" default="true" />
-  <arg name="pull_arm" default="true" />
+  <arg name="pull_arm" default="false" />
+  <arg name="look" default="false" />
+  
   <arg name="addpose_topic" default="/follow_waypoints/initialpose"/>
   <arg name="posearray_topic" default="/waypoints"/>
   
@@ -14,32 +16,46 @@
     <arg name="continuous" default="true" />
   </include>
 
-  <group if="$(arg pull_arm)" >
-    <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" />
-  </group>
-  
   <node name="speech_to_roman"
         pkg="hand_navigation_pr2" type="speech_to_roman.py" >
     <remap from="~output" to="/Tablet/voice_roman" />
   </node>
-
-  <node name="people_pose_2d_to_3d"
-        pkg="jsk_perception" type="people_pose_2d_to_3d.py"
-        output="screen">
-    <remap from="~input/pose" to="$(arg input_pose_array)" />
-    <remap from="~input/info" to="$(arg input_camera_info)" />
-    <remap from="~input/depth" to="$(arg input_depth_image)" />
-    <rosparam subst_value="true">
-      approximate_sync: true
-      queue_size: 100
-    </rosparam>
-  </node>
   
-  <node name="people_pose_array_accumulator"
-        pkg="hand_navigation_pr2" type="people_pose_array_accumulator.py" >
-    <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
-    <param name="base_frame_id" value="base_footprint"/>
-  </node>
+  <group if="$(arg pull_arm)" >
+    <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" >
+      <arg name="gui" default="false" />
+      <arg name="look" value="$(arg look)" />
+    </include>
+  </group>
+
+  <group if="$(arg look)" >
+    <node name="people_pose_2d_to_3d"
+          pkg="jsk_perception" type="people_pose_2d_to_3d.py"
+          output="screen">
+      <remap from="~input/pose" to="$(arg input_pose_array)" />
+      <remap from="~input/info" to="$(arg input_camera_info)" />
+      <remap from="~input/depth" to="$(arg input_depth_image)" />
+      <rosparam subst_value="true">
+        approximate_sync: true
+        queue_size: 100
+      </rosparam>
+    </node>
+
+    <node name="people_pose_array_accumulator"
+          pkg="hand_navigation_pr2" type="people_pose_array_accumulator.py"
+          output="screen">
+      <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
+      <param name="base_frame_id" value="base_footprint"/>
+    </node>
+
+    <node pkg="roseus" type="roseus" name="look_for_human" output="screen"
+          args="$(find hand_navigation_pr2)/euslisp/look-for-human.l" >
+    </node>
+
+    <include file="$(find hand_navigation_pr2)/launch/human_filter.launch" >
+      <arg name="gui" value="false" />
+    </include>
+  </group>
   
   <node pkg="follow_waypoints" type="follow_waypoints_server" name="follow_waypoints" output="screen" clear_params="true">
     <param name="base_frame_id" value="base_footprint"/>
@@ -48,8 +64,8 @@
     <param name="addpose_topic" value="$(arg addpose_topic)"/>
     <param name="posearray_topic" value="$(arg posearray_topic)"/>
     <param name="waypoint_distance_tolerance" value="0.5"/>
-    <param name="timeout" value="30"/>
-  </node>
+    <param name="timeout" value="30"/> 
+ </node>
 
   <node pkg="roseus" type="roseus" name="teach_spot_demo" output="screen"
         args="$(find hand_navigation_pr2)/euslisp/teach-spot-demo.l" >

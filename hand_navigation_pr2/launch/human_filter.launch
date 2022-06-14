@@ -1,60 +1,33 @@
 <launch>
-
-  <arg name="gui" value="true" />
+  
+  <arg name="gui" default="false" />
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
   <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
   <arg name="input_base_scan" value="/base_scan_filtered" />
   <arg name="input_tilt_scan" value="/tilt_scan_filtered/navigation" />
-  
+  <arg name="manager_name" default="hand_navigation_pr2_manager" />
+  <arg name="manager" default="/$(arg manager_name)" />
 
-  <arg name="input_camera_info" value="/kinect_head/rgb/camera_info" />
-  <arg name="input_depth_image" value="/kinect_head/depth_registered/hw_registered/image_rect" />
-  <arg name="input_pose_array" value="/edgetpu_human_pose_estimator/output/poses" /> 
+  <node name="$(arg manager_name)"
+        pkg="nodelet" type="nodelet"
+        args="manager"/>
 
-  <node name="people_pose_2d_to_3d"
-        pkg="jsk_perception" type="people_pose_2d_to_3d.py"
-        output="screen">
-    <remap from="~input/pose" to="$(arg input_pose_array)" />
-    <remap from="~input/info" to="$(arg input_camera_info)" />
-    <remap from="~input/depth" to="$(arg input_depth_image)" />
-    <rosparam subst_value="true">
-      approximate_sync: true
-      queue_size: 100
-    </rosparam>
-  </node>
-
-  <node name="people_poses_to_poses"
-        pkg="jsk_recognition_msgs" type="people_pose_array_to_pose_array.py">
-    <remap from="~input" to="people_pose_2d_to_3d/output/pose" />
-  </node>
-
-  <!-- <node name="people_pose_array_to_boxes" -->
-  <!--       pkg="hand_navigation_pr2" type="people_pose_array_to_boxes.py" -->
-  <!--       output="screen" > -->
-  <!--   <remap from="~input" to="people_pose_2d_to_3d/output/pose" /> -->
-  <!--   <rosparam> -->
-  <!--     base_frame_id: base_laser_link <!-\- base_footprint -\-> -->
-  <!--     width: 1.0 -->
-  <!--   </rosparam> -->
-  <!-- </node> -->
-  <node name="people_pose_array_to_boxes"
-        pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+  <node name="boundingbox_publisher"
+        pkg="hand_navigation_pr2" type="boundingbox_publisher.py">
     <rosparam>
-      frame_id:  base_footprint
-      boxes:
-      - position: [0, 0.5, 0.0]
-        dimension: [1.5, 0.7, 3.0]
+      base_frame_id: base_link
+      on_ground: true
     </rosparam>
   </node>
 
   <group ns="filter_base_laser_scan" >
     <node name="attention_clipper"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper /kinect_head/kinect_head_nodelet_manager" >
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_base_scan)" />
-      <remap from="~input/box_array" to="/people_pose_array_to_boxes/output" />
+      <remap from="~input/box" to="/boundingbox_publisher/output" />
       <rosparam>
-        use_multiple_attention: true
+        use_multiple_attention: false
         negative: true
         approximate_sync: true
         queue_size: 1000
@@ -63,7 +36,7 @@
 
     <node name="extract_indices"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices /kinect_head/kinect_head_nodelet_manager">
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
       <remap from="~input" to="$(arg input_base_scan)" />
       <remap from="~indices" to="attention_clipper/output/point_indices" />
       <remap from="~output" to="/base_scan_filtered_non_human" />
@@ -84,11 +57,11 @@
   <group ns="filter_tilt_laser_scan" >
     <node name="attention_clipper"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/AttentionClipper /kinect_head/kinect_head_nodelet_manager" >
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_tilt_scan)" />
-      <remap from="~input/box_array" to="/people_pose_array_to_boxes/output" />
+      <remap from="~input/box" to="/boundingbox_publisher/output" />
       <rosparam>
-        use_multiple_attention: true
+        use_multiple_attention: false
         negative: true
         approximate_sync: true
         queue_size: 1000
@@ -97,7 +70,7 @@
 
     <node name="extract_indices"
           pkg="nodelet" type="nodelet"
-          args="load jsk_pcl/ExtractIndices /kinect_head/kinect_head_nodelet_manager">
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
       <remap from="~input" to="$(arg input_tilt_scan)" />
       <remap from="~indices" to="attention_clipper/output/point_indices" />
       <remap from="~output" to="/tilt_scan_filtered_non_human" />
@@ -122,3 +95,4 @@
     </node>
   </group>
 </launch>
+
