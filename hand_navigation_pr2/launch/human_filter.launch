@@ -25,9 +25,9 @@
           pkg="nodelet" type="nodelet"
           args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_base_scan)" />
-      <remap from="~input/box" to="/boundingbox_publisher/output" />
+      <remap from="~input/box_array" to="/boundingbox_publisher/output" />
       <rosparam>
-        use_multiple_attention: false
+        use_multiple_attention: true
         negative: true
         approximate_sync: true
         queue_size: 1000
@@ -49,7 +49,7 @@
 
     <node name="pointcloud_mux"
           pkg="topic_tools" type="mux"
-          args="$(arg input_base_scan)_mux $(arg input_base_scan) /base_scan_filtered_non_human" >
+          args="$(arg input_base_scan)_mux /base_scan_filtered_non_human $(arg input_base_scan)" >
       <remap from="mux" to="pointcloud_mux"/>
     </node>
   </group>
@@ -59,9 +59,9 @@
           pkg="nodelet" type="nodelet"
           args="load jsk_pcl/AttentionClipper $(arg manager)" >
       <remap from="~input/points" to="$(arg input_tilt_scan)" />
-      <remap from="~input/box" to="/boundingbox_publisher/output" />
+      <remap from="~input/box_array" to="/boundingbox_publisher/output" />
       <rosparam>
-        use_multiple_attention: false
+        use_multiple_attention: true
         negative: true
         approximate_sync: true
         queue_size: 1000
@@ -83,7 +83,7 @@
 
     <node name="pointcloud_mux"
           pkg="topic_tools" type="mux"
-          args="/tilt_scan_filtered_mux $(arg input_tilt_scan) /tilt_scan_filtered_non_human" >
+          args="/tilt_scan_filtered_mux /tilt_scan_filtered_non_human $(arg input_tilt_scan)" >
       <remap from="mux" to="pointcloud_mux"/>
     </node>
   </group>
