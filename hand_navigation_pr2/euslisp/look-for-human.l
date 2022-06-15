@@ -9,7 +9,9 @@
 (defun get-people ()
   (let (msg (retry-count 0) (max-retry 5))
     (while (< retry-count max-retry)
-      (setq msg (one-shot-subscribe "/people_pose_array_accumulator/output" geometry_msgs::PoseArray))
+      (setq msg (one-shot-subscribe "/people_pose_array_accumulator/output" geometry_msgs::PoseArray :timeout 3000))
+      (unless msg
+        (return-from get-people nil))
       (when msg
         (when (send msg :poses)
           (let ((position (send (elt (send msg :poses) 0) :position)))
