@@ -34,7 +34,7 @@ class PeoplePoseArrayAccumulator(ConnectionBasedTransport):
         self.sub.unregister()
 
     def _cb(self, msg):
-        rospy.logerr("{}".format(msg.header.stamp.to_sec()))
+        # rospy.logerr("{}".format(msg.header.stamp.to_sec()))
         try:
             pykdl_transform_base_to_camera = tf2_geometry_msgs.transform_to_kdl(
                 self._tf_buffer.lookup_transform(
@@ -68,6 +68,8 @@ class PeoplePoseArrayAccumulator(ConnectionBasedTransport):
             x, y, z = center[0], center[1], center[2]
             x, y, z = pykdl_transform_base_to_camera * PyKDL.Vector(
                 x, y, z)
+            if abs(y) > 5:
+                return
             center_array.append([x, y, z])
         if center_array:
             center_array = np.array(center_array)
@@ -80,7 +82,7 @@ class PeoplePoseArrayAccumulator(ConnectionBasedTransport):
             header.frame_id = self.base_frame_id
             pose_array_msg = PoseArray(header=header)
             pose_msg = Pose()
-            if len(self.pose_array) > 0:
+            if len(self.pose_array) > 3:
                 pose_median = np.median(np.array(self.pose_array), axis = 0)
                 pose_msg.position.x = pose_median[0]
                 pose_msg.position.y = pose_median[1]
