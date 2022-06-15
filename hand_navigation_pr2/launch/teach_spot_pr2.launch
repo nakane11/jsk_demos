@@ -50,6 +50,13 @@
 
     <node pkg="roseus" type="roseus" name="look_for_human" output="screen"
           args="$(find hand_navigation_pr2)/euslisp/look-for-human.l" >
+      <param name="robot" value="pr2"/>
+      <rosparam>
+        footprint_ns:
+        - /move_base_node/global_costmap
+        - /move_base_node/local_costmap
+        - /safe_teleop_base/local_costmap
+      </rosparam>
     </node>
 
     <include file="$(find hand_navigation_pr2)/launch/human_filter.launch" >

@@ -1,10 +1,30 @@
 (ros::roseus-add-msgs "geometry_msgs")
 (ros::roseus-add-srvs "hand_navigation_pr2")
 (ros::roseus-add-srvs "std_srvs")
-(load "package://pr2eus/pr2-interface.l")
+
 (ros::roseus "look_for_human")
-(pr2-init nil)
 (ros::wait-for-service "/boundingbox_publisher/set_param")
+
+(setq robot-type (ros::get-param "~robot"))
+(when (string= robot-type "pr2")
+  (load "package://pr2eus/pr2-interface.l")
+  (pr2-init nil)
+  ;; (setq *footprint-ns* (list "/move_base_node/global_costmap"
+  ;;                            "/move_base_node/local_costmap"
+  ;;                            "/safe_teleop_base/local_costmap"))
+  (setq *footprint-ns* (ros::get-param "~footprint_ns"))
+  (setq *default-footprint* "[0.34,0.35],[0.4,0],[0.34,-0.35],[-0.34,-0.35],[-0.34,0.35]")
+  (setq *look-up-angle* #f(85.0 10.0))
+  (setq *robot* *pr2*))
+(when (string= robot-type "fetch")
+  (load "package://fetcheus/fetch-interface.l")
+  (fetch-init nil)
+  (setq *footprint-ns* (list "/move_base/global_costmap"
+                             "/move_base/local_costmap"
+                             "/safe_teleop_base/local_costmap"))
+  (setq *default-footprint* "[0,0.3],[0.115,0.277],[0.212,0.212],[0.277,0.115],[0.3,0],[0.277,-0.115],[0.212,-0.212],[0.115,-0.277],[0,-0.3],[-0.115,-0.277],[-0.212,-0.212],[-0.277,-0.115],[-0.3,0],[-0.277,0.115],[-0.212,0.212],[-0.115,0.277]")
+  (setq *look-up-angle* #f(85.0 -10.0))
+  (setq *robot* *fetch*))
 
 (defun get-people ()
   (let (msg (retry-count 0) (max-retry 5))
@@ -24,7 +44,7 @@
           
 (defun set-bbox ()
   (let ((bbox_req (instance hand_navigation_pr2::SetBBoxPublisherRequest :init))
-        position footprint (width 0.6))
+        position human-footprint footprint (width 0.6))
     (setq position (get-people))
     (if position
         (progn
@@ -32,29 +52,32 @@
           (send bbox_req :switch t)
           (send bbox_req :position (float-vector (send position :x) (send position :y) 0.0))
           (send bbox_req :dimention (float-vector width width 2.0))
-          (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[~A,~A],[~A,~A],[~A,~A],[~A,~A],[0.34,0.35],[0.4,0],[0.34,-0.35]]"
+          (setq human-footprint (format nil "[~A,~A],[~A,~A],[~A,~A],[~A,~A]"
                                   (- (send position :x) (/ width 2.0)) (- (send position :y) (/ width 2.0))
                                   (- (send position :x) (/ width 2.0)) (+ (send position :y) (/ width 2.0))
                                   (+ (send position :x) (/ width 2.0)) (+ (send position :y) (/ width 2.0))
-                                  (+ (send position :x) (/ width 2.0)) (- (send position :y) (/ width 2.0)))))
+                                  (+ (send position :x) (/ width 2.0)) (- (send position :y) (/ width 2.0))))
+          (setq footprint (format nil "[~A,~A]" *default-footprint* human-footprint)))
         (progn
           (send bbox_req :switch nil)
-          (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]"))))
+          (setq footprint (format nil "[~A]" *default-footprint*))))
+
     (ros::service-call "/boundingbox_publisher/set_param" bbox_req)
-    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string footprint)
+    (dolist (ns *footprint-ns*)
+      (ros::set-dynamic-reconfigure-param ns "footprint" :string footprint))
     ))
 
 (defun cb (event)
   (ros::service-call "/look_forward_in_navigation/stop" (instance std_srvs::EmptyRequest :init))
-  ;; (ros::service-call "/look_in_force/stop" (instance std_srvs::EmptyRequest :init))
-  (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
-  (send *pr2* :head :angle-vector #f(85.0 10.0))
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
+  (ros::service-call "/head_look_at/stop" (instance std_srvs::EmptyRequest :init))
+  (send *robot* :angle-vector (send *ri* :state :potentio-vector))
+  (send *robot* :head :angle-vector *look-up-angle*)
+  (send *ri* :angle-vector (send *robot* :angle-vector) 1000)
   (send *ri* :wait-interpolation)
   (set-bbox)
-  (send *pr2* :head :angle-vector #f(0.0 0.0))
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 1500)
-  ;; (ros::service-call "/look_in_force/start" (instance std_srvs::EmptyRequest :init))
+  (send *robot* :head :angle-vector #f(0.0 0.0))
+  (send *ri* :angle-vector (send *robot* :angle-vector) 1500)
+  (ros::service-call "/head_look_at/start" (instance std_srvs::EmptyRequest :init))
   (ros::service-call "/look_forward_in_navigation/start" (instance std_srvs::EmptyRequest :init)))
 
 (ros::create-timer 7.0 #'cb)

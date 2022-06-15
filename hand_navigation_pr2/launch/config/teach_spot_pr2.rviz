@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /BoundingBoxArray1
       Splitter Ratio: 0.5
     Tree Height: 315
   - Class: rviz/Selection
@@ -26,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Image
+    SyncSource: tilt_scan
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -711,11 +712,19 @@ Visualization Manager:
       Unreliable: false
       Value: true
       alpha: 0.800000011920929
-      color: 25; 255; 0
+      color: 245; 121; 0
       coloring: Flat color
       line width: 0.019999999552965164
       only edge: true
       show coords: false
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /move_base_node/local_costmap/footprint
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -744,16 +753,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.964154243469238
+      Distance: 8.932284355163574
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 7.185421943664551
-        Y: 2.5292410850524902
-        Z: -3.406770706176758
+        X: 6.009963035583496
+        Y: 3.151045083999634
+        Z: -3.2336058616638184
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -762,7 +771,7 @@ Visualization Manager:
       Pitch: 1.0203979015350342
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.8703981637954712
+      Yaw: 0.8653981685638428
     Saved: ~
 Window Geometry:
   Displays:
