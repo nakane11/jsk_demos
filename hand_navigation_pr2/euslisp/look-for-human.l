@@ -24,16 +24,24 @@
           
 (defun set-bbox ()
   (let ((bbox_req (instance hand_navigation_pr2::SetBBoxPublisherRequest :init))
-        position)
+        position footprint (width 0.6))
     (setq position (get-people))
     (if position
         (progn
           (ros::ros-info "true")
           (send bbox_req :switch t)
           (send bbox_req :position (float-vector (send position :x) (send position :y) 0.0))
-          (send bbox_req :dimention (float-vector 0.6 0.6 2.0)))
-        (send bbox_req :switch nil))
+          (send bbox_req :dimention (float-vector width width 2.0))
+          (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[~A,~A],[~A,~A],[~A,~A],[~A,~A],[0.34,0.35],[0.4,0],[0.34,-0.35]]"
+                                  (- (send position :x) (/ width 2.0)) (- (send position :y) (/ width 2.0))
+                                  (- (send position :x) (/ width 2.0)) (+ (send position :y) (/ width 2.0))
+                                  (+ (send position :x) (/ width 2.0)) (+ (send position :y) (/ width 2.0))
+                                  (+ (send position :x) (/ width 2.0)) (- (send position :y) (/ width 2.0)))))
+        (progn
+          (send bbox_req :switch nil)
+          (setq footprint (format nil "[[-0.34,-0.35],[-0.34,0.35],[0.34,0.35],[0.4,0],[0.34,-0.35]]"))))
     (ros::service-call "/boundingbox_publisher/set_param" bbox_req)
+    (ros::set-dynamic-reconfigure-param "/move_base_node/local_costmap" "footprint" :string footprint)
     ))
 
 (defun cb (event)
@@ -41,13 +49,13 @@
   ;; (ros::service-call "/look_in_force/stop" (instance std_srvs::EmptyRequest :init))
   (send *pr2* :angle-vector (send *ri* :state :potentio-vector))
   (send *pr2* :head :angle-vector #f(85.0 10.0))
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 800)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 1000)
   (send *ri* :wait-interpolation)
   (set-bbox)
   (send *pr2* :head :angle-vector #f(0.0 0.0))
-  (send *ri* :angle-vector (send *pr2* :angle-vector) 600)
+  (send *ri* :angle-vector (send *pr2* :angle-vector) 1500)
   ;; (ros::service-call "/look_in_force/start" (instance std_srvs::EmptyRequest :init))
   (ros::service-call "/look_forward_in_navigation/start" (instance std_srvs::EmptyRequest :init)))
 
-(ros::create-timer 8.0 #'cb)
+(ros::create-timer 7.0 #'cb)
 (ros::spin)
