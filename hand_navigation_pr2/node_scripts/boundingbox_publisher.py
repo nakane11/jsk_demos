@@ -5,7 +5,7 @@ import sys
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Vector3
-from jsk_recognition_msgs.msg import BoundingBox
+from jsk_recognition_msgs.msg import BoundingBox, BoundingBoxArray
 from hand_navigation_pr2.srv import SetBBoxPublisher, SetBBoxPublisherResponse
 import rospy
 
@@ -18,12 +18,17 @@ class BoundingBoxPublisher(object):
         self.orientation = [0.0, 0.0, 0.0, 1.0]
         self.dimention = [1.5, 0.7, 3.0]
         self.on_ground = rospy.get_param("~on_ground")
-        self.pub = rospy.Publisher('~output', BoundingBox, queue_size=1)
+        self.pub = rospy.Publisher('~output', BoundingBoxArray, queue_size=1)
         self.rate = rospy.Rate(1)
         self.is_run = False
         service = rospy.Service('~set_param', SetBBoxPublisher, self.set_param_server)
         
     def publish(self):
+        bbox_array_msg = BoundingBoxArray()
+        bbox_array_msg.header.seq = self.seq
+        bbox_array_msg.header.frame_id = self.frame_id
+        bbox_array_msg.header.stamp = rospy.Time.now()
+
         if self.is_run:
             bbox_msg = BoundingBox()
             bbox_msg.header.seq = self.seq
@@ -34,7 +39,9 @@ class BoundingBoxPublisher(object):
             bbox_msg.dimensions = Vector3(*self.dimention)
             if self.on_ground:
                 bbox_msg.pose.position.z += self.dimention[2]/2
-            self.pub.publish(bbox_msg)
+            bbox_array_msg.boxes.append(bbox_msg)
+            
+        self.pub.publish(bbox_array_msg)
 
     def set_param_server(self, req):
         response = SetBBoxPublisherResponse()
