@@ -24,7 +24,6 @@
   <group if="$(arg pull_arm)" >
     <include file="$(find virtual_force_drag)/launch/pr2_virtual_force_drag.launch" >
       <arg name="gui" default="false" />
-      <arg name="look" value="$(arg look)" />
     </include>
   </group>
 

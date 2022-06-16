@@ -66,6 +66,11 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        base_camera_mount:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         base_link:
           Alpha: 1
           Show Axes: false
@@ -81,6 +86,14 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        d435_front_left_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        d435_front_right_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         elbow_flex_link:
           Alpha: 1
           Show Axes: false
@@ -97,6 +110,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         gripper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_box_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -372,14 +390,14 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /head_camera/rgb/image_rect_color
+      Image Topic: /edgetpu_object_detector/output/image
       Max Value: 1
       Median window: 5
       Min Value: 0
       Name: Image
       Normalize Range: true
       Queue Size: 2
-      Transport Hint: raw
+      Transport Hint: compressed
       Unreliable: false
       Value: true
   Enabled: true
