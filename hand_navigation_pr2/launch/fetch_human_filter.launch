@@ -1,0 +1,98 @@
+<launch>
+  
+  <arg name="gui" default="false" />
+  <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/points" /> -->
+  <!-- <arg name="input_cloud" value="/kinect_head/depth_registered/quater/points" /> -->
+  <arg name="input_base_scan" value="/base_scan" />
+  <!-- <arg name="input_tilt_scan" value="/tilt_scan_filtered/navigation" /> -->
+  <arg name="manager_name" default="hand_navigation_pr2_manager" />
+  <arg name="manager" default="/$(arg manager_name)" />
+
+  <node name="$(arg manager_name)"
+        pkg="nodelet" type="nodelet"
+        args="manager"/>
+
+  <node name="boundingbox_publisher"
+        pkg="hand_navigation_pr2" type="boundingbox_publisher.py">
+    <rosparam>
+      base_frame_id: base_link
+      on_ground: true
+    </rosparam>
+  </node>
+
+  <group ns="filter_base_laser_scan" >
+    <node name="attention_clipper"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
+      <remap from="~input/points" to="$(arg input_base_scan)" />
+      <remap from="~input/box_array" to="/boundingbox_publisher/output" />
+      <rosparam>
+        use_multiple_attention: true
+        negative: true
+        approximate_sync: true
+        queue_size: 1000
+      </rosparam>
+    </node>
+
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
+      <remap from="~input" to="$(arg input_base_scan)" />
+      <remap from="~indices" to="attention_clipper/output/point_indices" />
+      <remap from="~output" to="/base_scan_filtered_non_human" />
+      <rosparam>
+        keep_organized: true
+        approximate_sync: true
+        queue_size: 100
+      </rosparam>
+    </node>
+
+    <node name="pointcloud_mux"
+          pkg="topic_tools" type="mux"
+          args="$(arg input_base_scan)_mux /base_scan_filtered_non_human $(arg input_base_scan)" >
+      <remap from="mux" to="pointcloud_mux"/>
+    </node>
+  </group>
+
+  <!-- <group ns="filter_tilt_laser_scan" > -->
+  <!--   <node name="attention_clipper" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/AttentionClipper $(arg manager)" > -->
+  <!--     <remap from="~input/points" to="$(arg input_tilt_scan)" /> -->
+  <!--     <remap from="~input/box_array" to="/boundingbox_publisher/output" /> -->
+  <!--     <rosparam> -->
+  <!--       use_multiple_attention: true -->
+  <!--       negative: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 1000 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
+
+  <!--   <node name="extract_indices" -->
+  <!--         pkg="nodelet" type="nodelet" -->
+  <!--         args="load jsk_pcl/ExtractIndices $(arg manager)"> -->
+  <!--     <remap from="~input" to="$(arg input_tilt_scan)" /> -->
+  <!--     <remap from="~indices" to="attention_clipper/output/point_indices" /> -->
+  <!--     <remap from="~output" to="/tilt_scan_filtered_non_human" /> -->
+  <!--     <rosparam> -->
+  <!--       keep_organized: true -->
+  <!--       approximate_sync: true -->
+  <!--       queue_size: 100 -->
+  <!--     </rosparam> -->
+  <!--   </node> -->
+
+  <!--   <node name="pointcloud_mux" -->
+  <!--         pkg="topic_tools" type="mux" -->
+  <!--         args="/tilt_scan_filtered_mux /tilt_scan_filtered_non_human $(arg input_tilt_scan)" > -->
+  <!--     <remap from="mux" to="pointcloud_mux"/> -->
+  <!--   </node> -->
+  <!-- </group> -->
+
+  <group if="$(arg gui)" >
+    <node name="$(anon rviz)"
+          pkg="rviz" type="rviz"
+          args="-d $(find hand_navigation_pr2)/launch/config/human_filter.rviz" >
+    </node>
+  </group>
+</launch>
+
