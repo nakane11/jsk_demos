@@ -376,7 +376,7 @@
 
     (push-knowrob-properties (send scene :object "/eng2/7f/room73B2-table-front")
 			     "inFrontOf-Generally"
-			     (send scene :object "room73b2-x-leg-desk"))
+			     (send scene :object "room73b2-karimoku-table"))
     (push-knowrob-properties (send scene :object "/eng2/7f/room73B2-front-of-tv")
 			     "inFrontOf-Generally"
 			     (send scene :object "room73b2-sharp-52-aquostv"))
