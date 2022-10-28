@@ -26,12 +26,21 @@
                         ((send *scene* :floor< cur-floor target-floor) "up")
                         (t nil)))
     (ros::ros-info (format nil "up/down: ~A" up/down))
+    ;; (setq target-floor-button
+    ;;       (elt (assoc target-floor *floors* :test #'string=
+    ;;                   :key #'(lambda (x)
+    ;;                            (format nil "~A/~A" (send *scene* :name)
+    ;;                                    (string-downcase (elt x 0)))))
+    ;;            0)) ;; /eng8/1f -> 1F
+
+    ;; eus10
     (setq target-floor-button
           (elt (assoc target-floor *floors* :test #'string=
                       :key #'(lambda (x)
                                (format nil "~A/~A" (send *scene* :name)
-                                       (string-downcase (elt x 0)))))
+                                       (string-downcase x))))
                0)) ;; /eng8/1f -> 1F
+
     (set-alist 'inside-panel-name "/elevator_inside_panel" userdata)
     (set-alist 'outside-panel-name "/elevator_call_panel" userdata)
     ;; transform to scene frame
