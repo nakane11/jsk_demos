@@ -2,6 +2,7 @@
 
 (ros::roseus-add-msgs "geometry_msgs")
 (ros::roseus-add-msgs "move_base_msgs")
+(ros::roseus-add-msgs "control_msgs")
 (ros::roseus-add-srvs "nav_msgs")
 (ros::roseus-add-srvs "std_srvs")
 
@@ -11,8 +12,18 @@
 (load "package://elevator_move_base_pr2/src/state-machine-main.l")
 (load "package://elevator_move_base_pr2/src/utils.l")
 
+(setq move-base-action (instance ros::simple-action-client :init "/move_base_node" move_base_msgs::MoveBaseAction))
+(setq move-base-trajectory-action
+      (instance ros::simple-action-client :init "/base_controller/follow_joint_trajectory" control_msgs::FollowJointTrajectoryAction))
+
 (defvar *sm*)
 
+(defmethod state-machine-action-server
+  (:preempt-cb
+   (msg)
+   (send (cdr (assoc :cancel userdata)) :enable)
+   (send move-base-action :cancel-all-goals)
+   (send move-base-trajectory-action :cancel-all-goals)))
 
 (defun simple-goal-cb (msg)
   (let ((pub-msg (instance move_base_msgs::MoveBaseActionGoal :init))
