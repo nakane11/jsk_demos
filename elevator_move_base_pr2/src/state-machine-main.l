@@ -12,6 +12,7 @@
 ;; (load "package://elevator_move_base_pr2/src/database-interface.l")
 (load "package://elevator_move_base_pr2/src/state/check-elevator-needed.l")
 (load "package://elevator_move_base_pr2/src/state/check-elevator-open.l")
+(load "package://elevator_move_base_pr2/src/state/call-switchbot.l")
 (load "package://elevator_move_base_pr2/src/state/move-outside.l")
 (load "package://elevator_move_base_pr2/src/state/push-elevator-button.l")
 (load "package://elevator_move_base_pr2/src/state/ready-to-outside.l")
@@ -102,14 +103,18 @@
   (let ((sm (instance state-machine :init))
         (move-client (pr2-interface-move-base-action *ri*)))
     (send sm :add-node
-          (instance state :init :move-front
+          (instance state :init :move-front-tolerance
                     '(lambda (userdata)
                        (send *ri* :move-to
                              (cdr (assoc 'front-coords userdata))
-                             :retry 10))))
-    (send sm :add-node (instance state :init :push-outside (push-state-machine)
+                             :retry 10 :tolerance 1.5))))
+    ;; (send sm :add-node (instance state :init :push-outside (push-state-machine)
+    ;;                              :remap-list '((panel-name . outside-panel-name)
+    ;;                                            (button . outside-button))))
+    (send sm :add-node (instance state :init :call-switchbot `call-switchbot
                                  :remap-list '((panel-name . outside-panel-name)
                                                (button . outside-button))))
+
     (send sm :add-node
           (instance state :init :speak-fail
                     '(lambda (x)
@@ -140,12 +145,17 @@
                        (restore-params))))
     (send sm :arg-keys 'elevator-front-coords 'front-coords 'outside-panel-name
                        'outside-button 'inside-coords 'inside-panel-name
-                       'target-floor 'outside-coords 'push-arm)
+                       'target-floor 'outside-coords 'push-arm
+                       'cur-floor-string 'target-floor-string)
     (send sm :goal-state (list :succeed :fail-outside))
-    (send sm :start-state :move-front)
-    (send sm :add-transition :move-front :push-outside t)
-    (send sm :add-transition :move-front :fail-outside nil)
-    (send sm :add-transition :push-outside :move-inside :succeed)
+    ;; (send sm :start-state :move-front)
+    (send sm :start-state :move-front-tolerance)
+    ;; (send sm :add-transition :move-front :push-outside t)
+    (send sm :add-transition :move-front-tolerance :call-switchbot t)
+    (send sm :add-transition :move-front-tolerance :fail-outside nil)
+    ;; (send sm :add-transition :push-outside :move-inside :succeed)
+    (send sm :add-transition :call-switchbot :move-inside t)
+    (send sm :add-transition :call-switchbot :fail-outside nil)
     (send sm :add-transition :move-inside :push-inside :succeed)
     (send sm :add-transition :move-inside :speak-fail :fail)
     (send sm :add-transition :speak-fail :move-front t)
@@ -167,10 +177,12 @@
                     '(lambda (userdata)
                        ;; Free arm may hold something,
                        ;; so keep it away from base laser
-                       (pr2-tuckarm-pose
-                        (case (cdr (assoc 'push-arm userdata))
-                          (:rarm :larm)
-                          (:larm :rarm)))
+
+                       ;; (pr2-tuckarm-pose
+                       ;;  (case (cdr (assoc 'push-arm userdata))
+                       ;;    (:rarm :larm)
+                       ;;    (:larm :rarm)))
+
                        (store-params)
                        (call-service "look_forward_in_navigation/stop"
                                      (instance std_srvs::EmptyRequest :init))
@@ -191,6 +203,7 @@
     (send sm :arg-keys 'elevator-front-coords 'front-coords 'outside-panel-name
                        'outside-button 'inside-coords 'inside-panel-name
                        'target-floor 'outside-coords 'target-coords
+                       'target-floor-string 'cur-floor-string
                        'push-arm :goal)
     (send sm :goal-state (list :succeed :fail))
     (send sm :start-state :check-elevator-needed)

@@ -43,6 +43,7 @@
 
     (set-alist 'inside-panel-name "/elevator_inside_panel" userdata)
     (set-alist 'outside-panel-name "/elevator_call_panel" userdata)
+
     ;; transform to scene frame
     (set-alist
      'elevator-front-coords
@@ -82,6 +83,8 @@
        (send coords :name (send *scene* :name))
        coords)
      userdata)
+    (set-alist 'target-floor-string target-floor userdata)
+    (set-alist 'cur-floor-string cur-floor userdata)
     (set-alist 'target-floor target-floor-button userdata)
     (set-alist 'outside-button up/down userdata)
     (set-alist 'target-coords target-coords userdata)
