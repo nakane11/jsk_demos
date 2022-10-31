@@ -34,7 +34,7 @@
 
 (ros::roseus "elevator_move_base")
 
-(setq move-base-action (instance ros::simple-action-client :init "/move_base_node" move_base_msgs::MoveBaseAction))
+(setq move-base-action (instance ros::simple-action-client :init "/move_base" move_base_msgs::MoveBaseAction))
 (setq move-base-trajectory-action
       (instance ros::simple-action-client :init "/base_controller/follow_joint_trajectory" control_msgs::FollowJointTrajectoryAction))
 
