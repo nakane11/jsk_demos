@@ -22,11 +22,9 @@
   (setq *pr2* (pr2))
   (setq *ri* (instance pr2-interface :init
                        :move-base-action-name "elevator_move_base"))
-  ;; (send *pr2* :reset-pose)                                                                                                                                                                                                                                                      
-  ;; (pr2-tuckarm-pose)                                                                                                                                                                                                                                                            
-  ;; (look-front)                                                                                                                                                                                                                                                                  
+  ;; (send *pr2* :reset-pose)                                                                                                                                                                                                                                                       ;; (pr2-tuckarm-pose)                                                                                                                                                                                                                                                             ;; (look-front)
   (setq *scene* (make-eng8-scene))
   (setq *initial-pose* (send *ri* :state :worldcoords)))
 
-;; (send *ri* :move-to (send *scene* :spot "/eng8/6f/room610-chair-back"))                                                                                                                                                                                                         
-
+;; (send *ri* :move-to (send *scene* :spot "/eng8/6f/room610-chair-back"))
+;; (send *ri* :move-to (send *scene* :spot "/eng8/1f/pamphlet-front"))
