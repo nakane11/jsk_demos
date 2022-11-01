@@ -184,8 +184,8 @@
                        ;;    (:larm :rarm)))
 
                        (store-params)
-                       (call-service "look_forward_in_navigation/stop"
-                                     (instance std_srvs::EmptyRequest :init))
+                       ;; (call-service "look_forward_in_navigation/stop"
+                       ;;               (instance std_srvs::EmptyRequest :init))
                        (tolerance-medium)
                        (use-tilt-laser-obstacle-cloud t)
                        (ros::ros-info "Go to elevator.")
