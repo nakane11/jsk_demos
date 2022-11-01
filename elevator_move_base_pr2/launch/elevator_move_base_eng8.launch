@@ -1,6 +1,8 @@
 <launch>
   <!-- this launch is not tested -->
   <arg name="ROBOT" default="$(optenv ROBOT pr2)" />
+  <arg name="token" />
+
   <include file="$(find pr2_machine)/$(arg ROBOT).machine"/>
 
   <node name="elevator_move_base" pkg="roseus" type="roseus"
@@ -9,6 +11,10 @@
 
   <include file="$(find elevator_move_base_pr2)/launch/elevator_move_base_modules.xml">
     <arg name="scene" value="eng8" />
+  </include>
+
+  <include file="$(find switchbot_ros)/launch/switchbot.launch">
+    <arg name="token" value="$(arg token)" />
   </include>
 
 </launch>
