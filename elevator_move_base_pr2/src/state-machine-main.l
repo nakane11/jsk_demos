@@ -55,6 +55,23 @@
     (send sm :add-transition :check :look nil)
     sm))
 
+(defun switchbot-state-machine ()
+  (let ((sm (instance state-machine :init)))
+    (send sm :add-node (instance state :init :call 'call-switchbot))
+    (send sm :add-node (instance state :init :look 'look-button-state))
+    (send sm :add-node (instance state :init :check 'check-button-light-state))
+    (send sm :arg-keys 'button 'panel-name 'push-arm
+	  'cur-floor-string 'target-floor-string)
+    (send sm :goal-state (list :succeed :fail))
+    (send sm :start-state :look)
+    (send sm :add-transition :look :call t)
+    (send sm :add-transition :look :look nil)
+    (send sm :add-transition :call :check t)
+    (send sm :add-transition :call :fail nil)
+    (send sm :add-transition :check :succeed t)
+    (send sm :add-transition :check :call nil)
+    sm))
+
 (defun move-inside-state-machine ()
   (let ((sm (instance state-machine :init))
         (move-client (pr2-interface-move-base-action *ri*)))
@@ -102,18 +119,24 @@
 (defun take-elevator-state-machine ()
   (let ((sm (instance state-machine :init))
         (move-client (pr2-interface-move-base-action *ri*)))
+    (send sm :add-node (instance state :init :switchbot-once `call-switchbot
+                                 :remap-list '((panel-name . outside-panel-name)
+                                               (button . outside-button))))
     (send sm :add-node
           (instance state :init :move-front-tolerance
                     '(lambda (userdata)
                        (send *ri* :move-to
                              (cdr (assoc 'front-coords userdata))
-                             :retry 10 :tolerance 1.5))))
+                             :retry 10 :tolerance 0.0))))
     ;; (send sm :add-node (instance state :init :push-outside (push-state-machine)
     ;;                              :remap-list '((panel-name . outside-panel-name)
     ;;                                            (button . outside-button))))
-    (send sm :add-node (instance state :init :call-switchbot `call-switchbot
+    (send sm :add-node (instance state :init :switchbot (switchbot-state-machine)
                                  :remap-list '((panel-name . outside-panel-name)
                                                (button . outside-button))))
+    ;; (send sm :add-node (instance state :init :call-switchbot `call-switchbot
+    ;;                              :remap-list '((panel-name . outside-panel-name)
+    ;;                                            (button . outside-button))))
 
     (send sm :add-node
           (instance state :init :speak-fail
@@ -148,17 +171,22 @@
                        'target-floor 'outside-coords 'push-arm
                        'cur-floor-string 'target-floor-string)
     (send sm :goal-state (list :succeed :fail-outside))
-    ;; (send sm :start-state :move-front)
-    (send sm :start-state :move-front-tolerance)
-    ;; (send sm :add-transition :move-front :push-outside t)
-    (send sm :add-transition :move-front-tolerance :call-switchbot t)
-    (send sm :add-transition :move-front-tolerance :fail-outside nil)
-    ;; (send sm :add-transition :push-outside :move-inside :succeed)
-    (send sm :add-transition :call-switchbot :move-inside t)
-    (send sm :add-transition :call-switchbot :fail-outside nil)
+    (send sm :start-state :switchbot-once)
+    ;; (send sm :add-transition :switchbot-once :move-front-tolerance t)
+    ;; (send sm :add-transition :switchbot-once :move-front-tolerance nil)
+
+    ;; (send sm :add-transition :move-front-tolerance :switchbot t)
+    ;; (send sm :add-transition :move-front-tolerance :fail-outside nil)
+
+    (send sm :add-transition :switchbot-once :switchbot t)
+    (send sm :add-transition :switchbot-once :switchbot nil)
+
+    (send sm :add-transition :switchbot :move-inside :succeed)
+    (send sm :add-transition :switchbot :fail-outside :fail)
+
     (send sm :add-transition :move-inside :push-inside :succeed)
     (send sm :add-transition :move-inside :speak-fail :fail)
-    (send sm :add-transition :speak-fail :move-front t)
+    (send sm :add-transition :speak-fail :move-front-tolerance t)
     (send sm :add-transition :push-inside :ready-to-outside :succeed)
     (send sm :add-transition :ready-to-outside :move-outside :succeed)
     (send sm :add-transition :ready-to-outside :push-inside :fail)
