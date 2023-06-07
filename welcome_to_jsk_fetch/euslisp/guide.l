@@ -21,6 +21,7 @@
     (wait-for-impact vf-client)
     ;; Wait for person by face recognition and then greeting
     ;; (send *ri* :speak-jp "案内する人を探します" :wait t)
+    (send *ri* :speak-jp "はい" :wait t)
     (greeting :use-people-detection nil :use-face-detection nil)
     (salute-pose)
 
@@ -31,4 +32,4 @@
     ;; Go to spot from speech
     (send *ri* :raise-arm-pose)
     (send *ri* :wait-interpolation)
-    (go-to-spot-from-speech :client vf-client)))
+    (go-to-spot-from-speech :vf-client vf-client)))

@@ -85,7 +85,7 @@
     (send *ri* :move-to goal-pose :frame-id frame-id :no-wait t)))
 
 
-(defun go-to-spot-from-speech (&key (move-base-retry 100000) (client nil))
+(defun go-to-spot-from-speech (&key (move-base-retry 100000) (vf-client nil))
   (let* ((speech (one-shot-subscribe
                   "speech_to_text_julius"
                   speech_recognition_msgs::SpeechRecognitionCandidates))
@@ -99,7 +99,7 @@
     ;; Start navigation
     (send *ri* :speak-jp
           (format nil "~Aに移動します。動きますから注意してください。" spot-name))
-    (wait-for-start client)    
+    (wait-for-start vf-client)    
     (store-params)
     (inflation-loose :local-costmap-inflation-radius 0.2)
     (go-to-spot pin-name :relative-rot relative-rot)
@@ -107,11 +107,34 @@
                 (not (eq move-base-result actionlib_msgs::GoalStatus::*aborted*))
                 (<= move-base-count move-base-retry))
       (ros::spin-once)
-      (setq speech-recognition-result (send speech-recognition-client :result))
-      (when speech-recognition-result
-        (ros::ros-info "Speech Recognition Recognized ~A" speech-recognition-result)
-        (when (check-stop-words speech-recognition-result)
-          (return)))
+      (setq result-force (send vf-client :result-force))
+      (when result-force
+        (when (check-stop-force result-force)
+          (send *ri* :go-stop)
+          (send *fetch* :angle-vector
+                (send *ri* :state :potentio-vector :wait-until-update t))
+          (send *fetch* :head_pan_joint :joint-angle 89)
+          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :wait-interpolation)        
+          (setq restart nil)
+          
+          (while (null restart)
+            (ros::ros-info "waiting...")
+            (ros::spin-once)
+            (setq result-force (send vf-client :result-force))
+            (when result-force
+              (when (check-start-force result-force)
+                (setq restart t))))
+          (send *fetch* :head_pan_joint :joint-angle 0)
+          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :wait-interpolation)          
+          (send *ri* :speak-jp "出発します" :wait t)
+          (go-to-spot pin-name :relative-rot relative-rot)))
+      ;; (setq speech-recognition-result (send speech-recognition-client :result))
+      ;; (when speech-recognition-result
+      ;;   (ros::ros-info "Speech Recognition Recognized ~A" speech-recognition-result)
+      ;;   (when (check-stop-words speech-recognition-result)
+      ;;     (return)))
       (setq move-base-result (send *ri* :move-to-wait-once :retry 0 :wait-for-result-duration-time 1)))
     (restore-params)
 
@@ -130,10 +153,10 @@
 
 (defun salute-pose ()
   (send *ri* :salute-pose)
-  (send *ri* :angle-vector (send *fetch* :angle-vector))
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 600)
   (send *ri* :wait-interpolation)
   (send *ri* :raise-arm-pose)
-  (send *ri* :angle-vector (send *fetch* :angle-vector))
+  (send *ri* :angle-vector (send *fetch* :angle-vector) 700)
   (send *ri* :wait-interpolation))  
 
 (defun find-face ()
@@ -155,7 +178,7 @@
 (defun wait-for-impact (client)
   (let ((tx 0))
     (ros::ros-info "Waiting for impact...")
-    (while (< (abs tx) 15)
+    (while (< (abs tx) 8)
       (ros::spin-once)
       (setq tx (send (send client :result-torque) :x)))
     (ros::ros-info "Detected!")
@@ -164,7 +187,7 @@
 (defun wait-for-start (client)
   (let ((fx 0))
     (ros::ros-info "Waiting for x force...")
-    (while (< (abs fx) 9)
+    (while (< (abs fx) 8)
       (ros::spin-once)
       (setq fx (send (send client :result-force) :x)))
     (ros::ros-info "Detected!")
@@ -172,12 +195,12 @@
 
 (defun check-stop-force (force)
   (let* ((fx (send force :x)) (fy (send force :y)))
-    (when (or (< fx -5) (> fy 10))
+    (when (or (< fx -4) (> fy 8))
       (return-from check-stop-force t))))
 
 (defun check-start-force (force)
   (let* ((fx (send force :x)) (fy (send force :y)))
-    (when (or (> fx 10) (< fy -10))
+    (when (or (> fx 8) (< fy -5))
       (return-from check-start-force t))))
 
 (defun greeting (&key (use-people-detection nil)(use-face-detection t))

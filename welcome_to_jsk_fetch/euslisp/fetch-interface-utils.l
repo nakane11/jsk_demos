@@ -38,6 +38,6 @@
                   (send *fetch* :torso_lift_joint :joint-angle 200))
                   
     (:raise-arm-pose ()
-                     (send *fetch* :angle-vector #f(377.986 66.8161 49.7995 -124.751 128.303 -49.9474 46.2685 23.8554 -0.141624 31.6808))
+                     (send *fetch* :angle-vector #f(23.636 91.9089 80.1437 -92.8247 127.775 -9.7594 54.0688 0.015018 0.56082 1.07292))
                      (send *fetch* :torso_lift_joint :joint-angle 500))
     )
