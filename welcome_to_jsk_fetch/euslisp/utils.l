@@ -146,7 +146,6 @@
       (unix:usleep (* 1000 100)))
     (if find-face faces nil)))
 
-
 (defun find-people ()
   (one-shot-subscribe
    "/welcome_to_jsk/people_pose_aggregated_detector/output/detected"
@@ -170,7 +169,17 @@
       (setq fx (send (send client :result-force) :x)))
     (ros::ros-info "Detected!")
     ))
-  
+
+(defun check-stop-force (force)
+  (let* ((fx (send force :x)) (fy (send force :y)))
+    (when (or (< fx -5) (> fy 10))
+      (return-from check-stop-force t))))
+
+(defun check-start-force (force)
+  (let* ((fx (send force :x)) (fy (send force :y)))
+    (when (or (> fx 10) (< fy -10))
+      (return-from check-start-force t))))
+
 (defun greeting (&key (use-people-detection nil)(use-face-detection t))
   (if use-people-detection
       (progn

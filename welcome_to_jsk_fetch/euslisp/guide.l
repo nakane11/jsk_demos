@@ -31,4 +31,4 @@
     ;; Go to spot from speech
     (send *ri* :raise-arm-pose)
     (send *ri* :wait-interpolation)
-    (go-to-spot-from-speech vf-client)))
+    (go-to-spot-from-speech :client vf-client)))

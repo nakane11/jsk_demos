@@ -1,0 +1,112 @@
+<launch>
+  <arg name="input_base_scan" value="/base_scan" />
+  <arg name="input_depth_cloud" value="/head_camera/depth_downsample/points" />
+  <arg name="input_depth_image" value="/head_camera/depth_downsample/image_raw" />
+
+  <arg name="manager_name" default="fetch_filter_manager" />
+  <arg name="manager" default="/$(arg manager_name)" />
+
+  <node name="$(arg manager_name)"
+        pkg="nodelet" type="nodelet"
+        args="manager"/>
+
+    <node name="set_params"
+        pkg="welcome_to_jsk_fetch" type="set_params_fetch.py"
+        output="screen"/>
+    
+  <node name="arm_bounding_box_array_publisher"
+        pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+    <rosparam>
+      frame_id: gripper_link
+      boxes:
+      - position: [-0.18, 0.0, 0.0]
+        dimension: [0.60, 0.30, 0.30]
+    </rosparam>
+  </node>
+
+  
+  <node name="base_scan_to_pointcloud"
+        pkg="pointcloud_to_laserscan" type="laserscan_to_pointcloud_node" >
+    <remap from="scan_in" to="$(arg input_base_scan)"/>
+    <remap from="cloud" to="/base_scan/points"/>
+  </node>
+  
+  <group ns="filter_base_scan" >
+    <node name="attention_clipper"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
+      <remap from="~input/points" to="/base_scan/points" />
+      <remap from="~input/box_array" to="/add_bounding_box_array/output" />
+      <rosparam>
+        use_multiple_attention: true
+        negative: true
+        approximate_sync: true
+        queue_size: 1000
+      </rosparam>
+    </node>
+
+    <node name="extract_indices"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/ExtractIndices $(arg manager)">
+      <remap from="~input" to="/base_scan/points" />
+      <remap from="~indices" to="attention_clipper/output/point_indices" />
+      <remap from="~output" to="/base_scan/points_non_human" />
+      <rosparam>
+        keep_organized: true
+        approximate_sync: true
+        queue_size: 100
+      </rosparam>
+    </node>
+
+    <node name="pointcloud_mux"
+          pkg="topic_tools" type="mux"
+          args="$(arg input_base_scan)_mux /base_scan/points_non_human /base_scan/points" >
+      <remap from="mux" to="pointcloud_mux"/>
+    </node>
+  </group>
+
+    <group ns="filter_depth_image" >
+    <node name="attention_clipper"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl/AttentionClipper $(arg manager)" >
+      <remap from="~input/points" to="$(arg input_depth_cloud)" />
+      <remap from="~input/box_array" to="/add_bounding_box_array/output" />
+      <rosparam>
+        use_multiple_attention: true
+        negative: true
+        approximate_sync: true
+        queue_size: 1000
+      </rosparam>
+    </node>
+
+    <node name="point_indices_to_mask_image"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_pcl_utils/PointIndicesToMaskImage $(arg manager)">
+      <remap from="~input" to="attention_clipper/output/point_indices" />
+      <rosparam>
+        static_image_size: true
+        height: 120
+        width: 160
+      </rosparam>
+    </node>
+
+    <node name="apply_mask_image"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_perception/ApplyMaskImage $(arg manager)">
+      <remap from="~input" to="$(arg input_depth_image)" />
+      <remap from="~input/mask" to="point_indices_to_mask_image/output" />
+      <remap from="~output" to="/depth_image_non_human" />
+      <rosparam>
+        approximate_sync: true
+        clip: false
+      </rosparam>
+    </node>
+
+     <node name="depth_image_mux"
+          pkg="topic_tools" type="mux"
+          args="/depth_image_mux  /depth_image_non_human $(arg input_depth_image)" >
+      <remap from="mux" to="depth_image_mux"/>
+    </node>
+    </group>
+    
+</launch>

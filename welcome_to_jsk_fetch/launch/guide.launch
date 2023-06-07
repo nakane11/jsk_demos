@@ -13,6 +13,9 @@
         args="&quot;(main)&quot;"
         required="true" />
 
+  <include file="$(find welcome_to_jsk_fetch)/launch/holding_hands.launch" />
+  <include file="$(find welcome_to_jsk_fetch)/launch/filter.launch" />
+  
   <include if="$(arg launch_face_detection)"
            file="$(find opencv_apps)/launch/face_detection.launch">
     <arg name="image" value="/head_camera/rgb/image_rect_color" />
