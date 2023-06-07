@@ -4,6 +4,7 @@
 (load "package://welcome_to_jsk_fetch/euslisp/fetch-interface-utils.l")
 (load "package://welcome_to_jsk_fetch/euslisp/speech-recognition-client.l")
 (load "package://welcome_to_jsk_fetch/euslisp/language-utils.l")
+(load "package://welcome_to_jsk_fetch/euslisp/virtual-force-client.l")
 (ros::load-ros-manifest "actionlib_msgs")
 (ros::load-ros-manifest "speech_recognition_msgs")
 (ros::load-ros-manifest "opencv_apps")
@@ -84,7 +85,7 @@
     (send *ri* :move-to goal-pose :frame-id frame-id :no-wait t)))
 
 
-(defun go-to-spot-from-speech (&key (move-base-retry 100000))
+(defun go-to-spot-from-speech (&key (move-base-retry 100000) (client nil))
   (let* ((speech (one-shot-subscribe
                   "speech_to_text_julius"
                   speech_recognition_msgs::SpeechRecognitionCandidates))
@@ -98,6 +99,7 @@
     ;; Start navigation
     (send *ri* :speak-jp
           (format nil "~Aに移動します。動きますから注意してください。" spot-name))
+    (wait-for-start client)    
     (store-params)
     (inflation-loose :local-costmap-inflation-radius 0.2)
     (go-to-spot pin-name :relative-rot relative-rot)
@@ -126,6 +128,14 @@
   (send *ri* :angle-vector (send *fetch* :angle-vector) 10000)
   (send *ri* :wait-interpolation))
 
+(defun salute-pose ()
+  (send *ri* :salute-pose)
+  (send *ri* :angle-vector (send *fetch* :angle-vector))
+  (send *ri* :wait-interpolation)
+  (send *ri* :raise-arm-pose)
+  (send *ri* :angle-vector (send *fetch* :angle-vector))
+  (send *ri* :wait-interpolation))  
+
 (defun find-face ()
   (let (face-msg faces (find-face t))
     (dotimes (i 5)
@@ -143,8 +153,25 @@
    std_msgs::Bool
    :condition #'(lambda (msg) (send msg :data))))
 
+(defun wait-for-impact (client)
+  (let ((tx 0))
+    (ros::ros-info "Waiting for impact...")
+    (while (< (abs tx) 15)
+      (ros::spin-once)
+      (setq tx (send (send client :result-torque) :x)))
+    (ros::ros-info "Detected!")
+    ))
 
-(defun greeting (&key (use-people-detection nil))
+(defun wait-for-start (client)
+  (let ((fx 0))
+    (ros::ros-info "Waiting for x force...")
+    (while (< (abs fx) 9)
+      (ros::spin-once)
+      (setq fx (send (send client :result-force) :x)))
+    (ros::ros-info "Detected!")
+    ))
+  
+(defun greeting (&key (use-people-detection nil)(use-face-detection t))
   (if use-people-detection
       (progn
         (send *fetch* :angle-vector
@@ -156,31 +183,32 @@
 
         (ros::ros-info "Searching for people...")
         (find-people))
-      (let (faces face-x face-y)
-        ;; Look up
-        (send *fetch* :angle-vector
-              (send *ri* :state :potentio-vector :wait-until-update t))
-        (send *fetch* :head :neck-p :joint-angle -20)
-        (send *fetch* :head :neck-y :joint-angle 0)
-        (send *ri* :angle-vector (send *fetch* :angle-vector))
-        (send *ri* :wait-interpolation)
+      (when use-face-detection
+        (let (faces face-x face-y)
+          ;; Look up
+          (send *fetch* :angle-vector
+                (send *ri* :state :potentio-vector :wait-until-update t))
+          (send *fetch* :head :neck-p :joint-angle -20)
+          (send *fetch* :head :neck-y :joint-angle 0)
+          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :wait-interpolation)
 
-        ;; Wait until face is found
-        (do-until-key
-            (format t "Searching for people ...~%")
-          (if (setq faces (find-people))
-              (return)
-              (unix:sleep 1)))
-        ;; Look at the found face
-        (format t "find faces~%")
-        (send *fetch* :angle-vector
-              (send *ri* :state :potentio-vector :wait-until-update t))
-        (setq face-x (send (send (car faces) :face) :x))
-        (setq face-y (send (send (car faces) :face) :y))
-        (send *fetch* :head :neck-y :joint-angle (- (send *fetch* :head :neck-y :joint-angle) (/ (max -40 (min 40 (- face-x 320))) 5.0)))
-        (send *fetch* :head :neck-p :joint-angle (+ (send *fetch* :head :neck-p :joint-angle) (/ (max -20 (min 20 (- face-y 240))) 5.0)))
-        (send *ri* :angle-vector (send *fetch* :angle-vector) 300)
-        (send *ri* :wait-interpolation)))
+          ;; Wait until face is found
+          (do-until-key
+           (format t "Searching for people ...~%")
+           (if (setq faces (find-people))
+               (return)
+             (unix:sleep 1)))
+          ;; Look at the found face
+          (format t "find faces~%")
+          (send *fetch* :angle-vector
+                (send *ri* :state :potentio-vector :wait-until-update t))
+          (setq face-x (send (send (car faces) :face) :x))
+          (setq face-y (send (send (car faces) :face) :y))
+          (send *fetch* :head :neck-y :joint-angle (- (send *fetch* :head :neck-y :joint-angle) (/ (max -40 (min 40 (- face-x 320))) 5.0)))
+          (send *fetch* :head :neck-p :joint-angle (+ (send *fetch* :head :neck-p :joint-angle) (/ (max -20 (min 20 (- face-y 240))) 5.0)))
+          (send *ri* :angle-vector (send *fetch* :angle-vector) 300)
+          (send *ri* :wait-interpolation))))
   (send *ri* :speak-jp "JSKへようこそ。見学はこちらになります。" :wait t))
 
 (defun intro ()
