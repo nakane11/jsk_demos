@@ -19,6 +19,7 @@
 
   (do-until-key
     (wait-for-impact vf-client)
+    (one-shot-publish "/hand_holding" std_msgs::String)
     ;; Wait for person by face recognition and then greeting
     ;; (send *ri* :speak-jp "案内する人を探します" :wait t)
     (send *ri* :speak-jp "はい" :wait t)
