@@ -85,7 +85,7 @@
     (send *ri* :move-to goal-pose :frame-id frame-id :no-wait t)))
 
 
-(defun go-to-spot-from-speech (&key (move-base-retry 100000) (vf-client nil))
+(defun go-to-spot-from-speech (&key (move-base-retry 100000) (vf-client nil) (use-people-detection))
   (let* ((speech (one-shot-subscribe
                   "speech_to_text_julius"
                   speech_recognition_msgs::SpeechRecognitionCandidates))
@@ -98,8 +98,8 @@
          speech-recognition-result)
     ;; Start navigation
     (send *ri* :speak-jp
-          (format nil "~Aに移動します。動きますから注意してください。" spot-name))
-    (wait-for-start vf-client)    
+          (format nil "~Aに移動します。動きますから注意してください。" spot-name) :wait t)
+    (wait-for-start vf-client :use-people-detection t)
     (store-params)
     (inflation-loose :local-costmap-inflation-radius 0.2)
     (go-to-spot pin-name :relative-rot relative-rot)
@@ -114,7 +114,8 @@
           (send *fetch* :angle-vector
                 (send *ri* :state :potentio-vector :wait-until-update t))
           (send *fetch* :head_pan_joint :joint-angle 89)
-          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          ;; (send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 1000 :head-controller)
           (send *ri* :wait-interpolation)        
           (setq restart nil)
           
@@ -126,7 +127,8 @@
               (when (check-start-force result-force)
                 (setq restart t))))
           (send *fetch* :head_pan_joint :joint-angle 0)
-          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          ;;(send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 1000 :head-controller)
           (send *ri* :wait-interpolation)          
           (send *ri* :speak-jp "出発します" :wait t)
           (go-to-spot pin-name :relative-rot relative-rot)))
@@ -169,25 +171,67 @@
       (unix:usleep (* 1000 100)))
     (if find-face faces nil)))
 
+
 (defun find-people ()
   (one-shot-subscribe
    "/welcome_to_jsk/people_pose_aggregated_detector/output/detected"
    std_msgs::Bool
    :condition #'(lambda (msg) (send msg :data))))
 
-(defun wait-for-impact (client)
-  (let ((tx 0))
+(setq *face-msg* nil)
+(ros::subscribe "/face_detection/faces"
+                opencv_apps::FaceArrayStamped
+                #'(lambda (msg) (setq *face-msg* msg)))
+(defun look-at-people ()
+  (let (faces-msg faces face-x face-y)
+    (ros::ros-info "try to find people~%")
+    (when (find-people)
+      (ros::ros-info "try to find faces~%")
+      (when *face-msg*
+        ;; Look at the found face
+        (setq faces (send *face-msg* :faces))
+        (when faces
+          (send *fetch* :angle-vector
+                (send *ri* :state :potentio-vector :wait-until-update t))
+          (setq face-x (send (send (car faces) :face) :x))
+          (setq face-y (send (send (car faces) :face) :y))
+          (send *fetch* :head :neck-y :joint-angle (- (send *fetch* :head :neck-y :joint-angle) (/ (max -40 (min 40 (- face-x 320))) 5.0)))
+          (send *fetch* :head :neck-p :joint-angle (+ (send *fetch* :head :neck-p :joint-angle) (/ (max -20 (min 20 (- face-y 240))) 5.0)))
+          (ros::ros-info "head angles ~A" (send *fetch* :head :angle-vector))
+          (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 300 :head-controller)
+          ;;(send *ri* :angle-vector (send *fetch* :angle-vector) 300)
+          (send *ri* :wait-interpolation))))))
+
+(defun wait-for-impact (client &key (use-people-detection nil))
+  (let ((tx 0) (torque-msg nil))
+    (when use-people-detection
+      ;; Look up
+      (send *fetch* :angle-vector
+            (send *ri* :state :potentio-vector :wait-until-update t))
+      (send *fetch* :head :neck-p :joint-angle -20)
+      (send *fetch* :head :neck-y :joint-angle 0)
+      (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 1000 :head-controller)
+      ;; (send *ri* :angle-vector (send *fetch* :angle-vector))
+      (send *ri* :wait-interpolation))
     (ros::ros-info "Waiting for impact...")
-    (while (< (abs tx) 8)
+    (while (< (abs tx) 6)
+      (when use-people-detection (look-at-people))
       (ros::spin-once)
-      (setq tx (send (send client :result-torque) :x)))
+      (setq torque-msg (send client :result-torque))
+      (if torque-msg
+          (setq tx (send torque-msg :x))
+        (ros::ros-warn "no torque-msg....")))
+    (send *ri* :speak-jp "はい" :wait t)
     (ros::ros-info "Detected!")
     ))
 
-(defun wait-for-start (client)
+(defun wait-for-start (client &key (use-people-detection nil))
   (let ((fx 0))
+    (send *ri* :speak-jp "手を繋いで一緒に行きましょう" :wait nil)
     (ros::ros-info "Waiting for x force...")
     (while (< (abs fx) 8)
+      (when use-people-detection
+        (look-at-people))
       (ros::spin-once)
       (setq fx (send (send client :result-force) :x)))
     (ros::ros-info "Detected!")
@@ -222,7 +266,8 @@
                 (send *ri* :state :potentio-vector :wait-until-update t))
           (send *fetch* :head :neck-p :joint-angle -20)
           (send *fetch* :head :neck-y :joint-angle 0)
-          (send *ri* :angle-vector (send *fetch* :angle-vector))
+          ;; (send *ri* :angle-vector (send *fetch* :angle-vector))
+          (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 1000 :head-controller)
           (send *ri* :wait-interpolation)
 
           ;; Wait until face is found
@@ -239,7 +284,9 @@
           (setq face-y (send (send (car faces) :face) :y))
           (send *fetch* :head :neck-y :joint-angle (- (send *fetch* :head :neck-y :joint-angle) (/ (max -40 (min 40 (- face-x 320))) 5.0)))
           (send *fetch* :head :neck-p :joint-angle (+ (send *fetch* :head :neck-p :joint-angle) (/ (max -20 (min 20 (- face-y 240))) 5.0)))
-          (send *ri* :angle-vector (send *fetch* :angle-vector) 300)
+          (format t "head angles ~A" (send *fetch* :head :angle-vector))
+          ;; (send *ri* :angle-vector (send *fetch* :angle-vector) 300)
+          (send *ri* :angle-vector-raw (send *fetch* :angle-vector) 300 :head-controller)
           (send *ri* :wait-interpolation))))
   (send *ri* :speak-jp "JSKへようこそ。見学はこちらになります。" :wait t))
 
