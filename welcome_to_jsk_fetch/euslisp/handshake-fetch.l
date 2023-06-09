@@ -55,8 +55,12 @@ nil)
   (instance std_srvs::EmptyResponse :init))
 
 (ros::roseus "hand_shaking")
+
 (fetch-init)
 (send *ri* :go-grasp :pos 0.05 :wait t)
+(send *ri* :angle-vector #f(264.81 80.1459 86.975 -63.8884 124.444 -17.7353 55.9607 -0.005765 -9.36396 40.3897) 600)
+(send *ri* :wait-interpolation)
+
 (ros::advertise-service "~start" std_srvs::Empty #'start-hand-shaking)
 (ros::advertise-service "~stop" std_srvs::Empty #'stop-hand-shaking)
 (ros::spin)
