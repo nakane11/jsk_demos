@@ -13,25 +13,13 @@
             clear_params="true"
             output="screen" >
         <remap from="~input" to="image_rect_color" />
+        <remap from="~input/info" to="/$(arg camera_name)/$(arg rgb)/camera_info" />
+        <remap from="~input/depth" to="/$(arg camera_name)/depth_registered/image_rect" />
         <rosparam subst_value="true" >
           enable_vital_check: false
         </rosparam>
       </node>
     </group>
-
-    <node name="hand_skeleton_with_depth"
-          pkg="stereo_image_sandbox" type="skeleton_with_depth.py"
-          respawn="true"
-          clear_params="true"
-          output="screen" >
-        <remap from="~input/info" to="/$(arg camera_name)/$(arg rgb)/camera_info" />
-        <remap from="~input/skeleton" to="/$(arg camera_name)/$(arg rgb)/hand_pose_estimation/output/skeleton" />
-        <remap from="~input/depth" to="/$(arg camera_name)/depth_registered/image_rect" />
-        <rosparam subst_value="true" >
-          queue_size: $(arg queue_size)
-          enable_vital_check: false
-        </rosparam>
-    </node>
   </group>
 
   <group if="$(arg gui)" >
