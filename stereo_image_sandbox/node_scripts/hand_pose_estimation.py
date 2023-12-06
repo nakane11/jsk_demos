@@ -249,7 +249,9 @@ class HandPoseEstimation(ConnectionBasedTransport):
                         fingernames):
                     u, v = pose.position.x, pose.position.y
                     if 0 <= u < W and 0 <= v < H:
-                        z = float(depth_img[int(v)][int(u)])
+                        size = 5
+                        cropped_img = depth_img[max(0, int(v)-(size-1)//2) : min(H, int(v)+(size-1)//2+1), max(0, int(u)-(size-1)//2) : min(W, int(u)+(size-1)//2+1)]
+                        z = float(np.nanmean(cropped_img))
                     else:
                         continue
                     if np.isnan(z) or z <= 0:
